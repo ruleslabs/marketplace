@@ -1,0 +1,22 @@
+*.pytest_cache
+*.mypy_cache
+*.pyc
+__pycache__
+*.egg-info/
+venv/
+.tox
+
+artifacts/
+
+*.log
+
+env
+
+# Nile files
+node.json
+*.accounts.json
+*.deployments.txt
+
+# debug
+main.cairo
+test.json
