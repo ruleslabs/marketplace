@@ -50,6 +50,14 @@ end
 func offers_owner_storage(card_id: Uint256) -> (owner: felt):
 end
 
+#
+# Events
+#
+
+@event
+func OfferCreated(owner: felt, card_id: Uint256, price: felt):
+end
+
 namespace Marketplace:
 
   #
@@ -118,7 +126,7 @@ namespace Marketplace:
       range_check_ptr
     }(implementation: felt):
     # make sure the target is not null
-    with_attr error_message("PacksOpener: new implementation cannot be null"):
+    with_attr error_message("Marketplace: new implementation cannot be null"):
       assert_not_zero(implementation)
     end
 
@@ -150,6 +158,8 @@ namespace Marketplace:
 
     offers_price_storage.write(card_id, price)
     offers_owner_storage.write(card_id, caller)
+
+    OfferCreated.emit(caller, card_id, price)
 
     return ()
   end
