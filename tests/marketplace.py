@@ -17,10 +17,13 @@ from conftest import cardModel1, cardModel2, cardModel3, metadata
 VERSION = str_to_felt('0.1.0')
 
 
+#
+# Offer creation
+#
+
 @pytest.mark.asyncio
 async def test_create_offer_for_invalid_card(ctx_factory):
   ctx = ctx_factory()
-  owner_sender = TransactionSender(ctx.owner, ctx.signers['owner'])
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
   rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
 
@@ -61,7 +64,6 @@ async def test_create_offer_for_invalid_card(ctx_factory):
 @pytest.mark.asyncio
 async def test_create_offer_with_invalid_price(ctx_factory):
   ctx = ctx_factory()
-  owner_sender = TransactionSender(ctx.owner, ctx.signers['owner'])
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
@@ -80,7 +82,7 @@ async def test_create_offer_with_invalid_price(ctx_factory):
     rando1_sender.send_transaction([
       (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE - 1]),
     ]),
-    'Marketplace: Invalid price'
+    'Marketplace: invalid price'
   )
 
   # create offer with price too high
@@ -88,14 +90,13 @@ async def test_create_offer_with_invalid_price(ctx_factory):
     rando1_sender.send_transaction([
       (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MAX_PRICE + 1]),
     ]),
-    'Marketplace: Invalid price'
+    'Marketplace: invalid price'
   )
 
 
 @pytest.mark.asyncio
 async def test_create_and_update_offer(ctx_factory):
   ctx = ctx_factory()
-  owner_sender = TransactionSender(ctx.owner, ctx.signers['owner'])
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
@@ -141,6 +142,91 @@ async def test_create_and_update_offer(ctx_factory):
   # check offer price
   assert (await ctx.marketplace.offerFor(card1_1_id).call()).result.price == MAX_PRICE
 
+
+#
+# Offer cancelation
+#
+
+@pytest.mark.asyncio
+async def test_cancel_invalid_offer(ctx_factory):
+  ctx = ctx_factory()
+  rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
+  rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
+
+  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+
+  # cancel offer that does not exists
+  await assert_revert(
+    rando1_sender.send_transaction([
+      (ctx.marketplace.contract_address, 'cancelOffer', [card1_1_id.low, card1_1_id.high]),
+    ]),
+    'Marketplace: offer does not exists'
+  )
+
+  # approve marketplace
+  await rando1_sender.send_transaction([
+    (
+      ctx.rules_tokens.contract_address,
+      'approve',
+      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
+    ),
+  ])
+
+  # create offer
+  await rando1_sender.send_transaction([
+    (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
+  ])
+
+  # cancel offer created by another account
+  await assert_revert(
+    rando2_sender.send_transaction([
+      (ctx.marketplace.contract_address, 'cancelOffer', [card1_1_id.low, card1_1_id.high]),
+    ]),
+    'Marketplace: caller is not the offer creator'
+  )
+
+
+@pytest.mark.asyncio
+async def test_create_and_cancel_offer(ctx_factory):
+  ctx = ctx_factory()
+  rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
+
+  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+
+  # approve marketplace
+  await rando1_sender.send_transaction([
+    (
+      ctx.rules_tokens.contract_address,
+      'approve',
+      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
+    ),
+  ])
+
+  # create offer
+  await rando1_sender.send_transaction([
+    (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
+  ])
+
+  # cancel offer
+  tx_exec_info = await rando1_sender.send_transaction([
+    (ctx.marketplace.contract_address, 'cancelOffer', [card1_1_id.low, card1_1_id.high]),
+  ])
+
+  # Check for offer cancelation event
+  assert_event_emmited(
+    tx_exec_info,
+    from_address=ctx.marketplace.contract_address,
+    name='OfferCanceled',
+    data=[card1_1_id.low, card1_1_id.high]
+  )
+
+  # check offer price
+  assert (await ctx.marketplace.offerFor(card1_1_id).call()).result.price == 0
+
+
+#
+# Contract upgrade
+#
 
 @pytest.mark.asyncio
 async def test_upgrade(ctx_factory):

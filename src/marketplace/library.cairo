@@ -58,6 +58,10 @@ end
 func OfferCreated(owner: felt, card_id: Uint256, price: felt):
 end
 
+@event
+func OfferCanceled(card_id: Uint256):
+end
+
 namespace Marketplace:
 
   #
@@ -99,7 +103,11 @@ namespace Marketplace:
     }(card_id: Uint256) -> (price: felt):
     # Check approve state
     let (owner) = offers_owner_storage.read(card_id)
-    _assert_approve_is_valid(owner, card_id)
+    let (is_approve_valid) = _is_approve_valid(owner, card_id)
+
+    if is_approve_valid == FALSE:
+      return (0)
+    end
 
     let (price) = offers_price_storage.read(card_id)
     return (price)
@@ -148,10 +156,14 @@ namespace Marketplace:
 
     # Check if caller own the card and the marketplace is a valid operator
     let (local caller) = get_caller_address()
-    _assert_approve_is_valid(owner=caller, card_id=card_id)
+    let (is_approve_valid) = _is_approve_valid(owner=caller, card_id=card_id)
+
+    with_attr error_message("Marketplace: not allowed to transfer given card from owner wallet"):
+      assert is_approve_valid = TRUE
+    end
 
     # Check price
-    with_attr error_message("Marketplace: Invalid price"):
+    with_attr error_message("Marketplace: invalid price"):
       assert_le(price, MAX_PRICE)
       assert_le(MIN_PRICE, price)
     end
@@ -164,25 +176,54 @@ namespace Marketplace:
     return ()
   end
 
+  func cancel_offer{
+      syscall_ptr: felt*,
+      pedersen_ptr: HashBuiltin*,
+      range_check_ptr
+    }(card_id: Uint256):
+    # Check if offer exists and caller own the card
+    let (caller) = get_caller_address()
+    let (owner) = offers_owner_storage.read(card_id)
+
+    with_attr error_message("Marketplace: offer does not exists"):
+      assert_not_zero(owner)
+    end
+
+    with_attr error_message("Marketplace: caller is not the offer creator"):
+      assert caller = owner
+    end
+
+    # reset offer storage
+    offers_price_storage.write(card_id, 0)
+    offers_owner_storage.write(card_id, 0)
+
+    OfferCanceled.emit(card_id)
+
+    return ()
+  end
+
   #
   # Internals
   #
 
-  func _assert_approve_is_valid{
+  func _is_approve_valid{
       syscall_ptr: felt*,
       pedersen_ptr: HashBuiltin*,
       range_check_ptr
-    }(owner: felt, card_id: Uint256):
+    }(owner: felt, card_id: Uint256) -> (res: felt):
     let (self) = get_contract_address()
     let (rules_tokens_address) = rules_tokens_address_storage.read()
 
     let (operator, amount) = IRulesTokens.getApproved(rules_tokens_address, owner=owner, token_id=card_id)
 
-    with_attr error_message("Marketplace: not allowed to transfer given card from owner wallet"):
-      assert_not_zero(amount.low)
-      assert operator = self
+    if amount.low == 0:
+      return (FALSE)
     end
 
-    return ()
+    if operator != self:
+      return (FALSE)
+    end
+
+    return (TRUE)
   end
 end

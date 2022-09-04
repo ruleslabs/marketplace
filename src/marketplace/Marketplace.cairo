@@ -104,6 +104,16 @@ func createOffer{
   return ()
 end
 
+@external
+func cancelOffer{
+    syscall_ptr: felt*,
+    pedersen_ptr: HashBuiltin*,
+    range_check_ptr
+  }(cardId: Uint256):
+  Marketplace.cancel_offer(cardId)
+  return ()
+end
+
 # Ownership
 
 @external
