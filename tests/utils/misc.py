@@ -1,4 +1,5 @@
 import os
+import math
 
 import inspect
 import periphery
@@ -20,6 +21,7 @@ _root = Path(__file__).parent.parent.parent
 
 MIN_PRICE = 10 ** 13
 MAX_PRICE = 10 ** 32
+TAX_PERCENT = 50_000 # 5%
 
 
 def to_starknet_args(data):
@@ -129,3 +131,7 @@ def set_block_timestamp(starknet_state, timestamp):
   starknet_state.state.block_info = BlockInfo.create_for_testing(
     starknet_state.state.block_info.block_number, timestamp
   )
+
+
+def tax(amount):
+  return math.floor(amount / 1_000_000 * TAX_PERCENT)

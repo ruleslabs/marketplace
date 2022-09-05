@@ -8,7 +8,8 @@ from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
 from utils.TransactionSender import TransactionSender
 from utils.misc import (
-  deploy_proxy, assert_revert, uint, assert_event_emmited, str_to_felt, to_starknet_args, declare, MAX_PRICE, MIN_PRICE
+  deploy_proxy, assert_revert, uint, assert_event_emmited, str_to_felt, to_starknet_args, declare, MAX_PRICE, MIN_PRICE,
+  tax
 )
 
 from conftest import cardModel1, cardModel2, cardModel3, metadata
@@ -275,7 +276,8 @@ async def test_create_and_accept_offer(ctx_factory):
   )
 
   # check balances
-  assert (await ctx.ether.balanceOf(ctx.rando1.contract_address).call()).result.balance == uint(MIN_PRICE)
+  assert (await ctx.ether.balanceOf(ctx.rando1.contract_address).call()).result.balance == uint(MIN_PRICE - tax(MIN_PRICE))
+  assert (await ctx.ether.balanceOf(ctx.tax.contract_address).call()).result.balance == uint(tax(MIN_PRICE))
   assert (await ctx.ether.balanceOf(ctx.rando2.contract_address).call()).result.balance == uint(0)
   assert (await ctx.rules_tokens.balanceOf(ctx.rando2.contract_address, card1_1_id).call()).result.balance == uint(1)
 

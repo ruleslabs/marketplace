@@ -3,7 +3,7 @@
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256
-from starkware.cairo.common.math import assert_not_zero, assert_le, assert_not_equal
+from starkware.cairo.common.math import assert_not_zero, assert_le, assert_not_equal, unsigned_div_rem
 from starkware.starknet.common.syscalls import get_contract_address, get_caller_address
 
 #
@@ -24,6 +24,9 @@ from openzeppelin.token.erc20.interfaces.IERC20 import IERC20
 const VERSION = '0.1.0'
 const MIN_PRICE = 10 ** 13 # 0.00001 ETH
 const MAX_PRICE = 10 ** 32 # 100,000,000,000,000 ETH
+
+const TAX_PERCENT = 50000 # 5%
+const TAX_DIVIDER = 1000000 / TAX_PERCENT
 
 #
 # Storage
@@ -271,8 +274,14 @@ namespace Marketplace:
       assert_not_equal(owner, caller)
     end
 
+    # Calculate tax amount
+    let (tax_amount, _) = unsigned_div_rem(price, TAX_DIVIDER)
+
     # transfer price amount to owner
-    IERC20.transferFrom(ether_address, sender=caller, recipient=owner, amount=Uint256(price, 0))
+    IERC20.transferFrom(ether_address, sender=caller, recipient=owner, amount=Uint256(price - tax_amount, 0))
+
+    # transfer tax amount to owner
+    IERC20.transferFrom(ether_address, sender=caller, recipient=tax_address, amount=Uint256(tax_amount, 0))
 
     # transfer card to caller
     let data = cast(0, felt*)
