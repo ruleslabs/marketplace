@@ -164,17 +164,13 @@ async def test_cancel_invalid_offer(ctx_factory):
     'Marketplace: offer does not exists'
   )
 
-  # approve marketplace
+  # approve marketplace / create offer
   await rando1_sender.send_transaction([
     (
       ctx.rules_tokens.contract_address,
       'approve',
       [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
     ),
-  ])
-
-  # create offer
-  await rando1_sender.send_transaction([
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
   ])
 
@@ -194,17 +190,13 @@ async def test_create_and_cancel_offer(ctx_factory):
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
 
-  # approve marketplace
+  # approve marketplace / create offer
   await rando1_sender.send_transaction([
     (
       ctx.rules_tokens.contract_address,
       'approve',
       [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
     ),
-  ])
-
-  # create offer
-  await rando1_sender.send_transaction([
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
   ])
 
@@ -230,6 +222,107 @@ async def test_create_and_cancel_offer(ctx_factory):
 #
 
 @pytest.mark.asyncio
+async def test_create_and_accept_invalid_offer(ctx_factory):
+  ctx = ctx_factory()
+  owner_sender = TransactionSender(ctx.owner, ctx.signers['owner'])
+  rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
+  rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
+
+  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+
+  # approve marketplace / create offer
+  await rando1_sender.send_transaction([
+    (
+      ctx.rules_tokens.contract_address,
+      'approve',
+      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
+    ),
+    (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
+  ])
+
+  # transfer ETH to buyer's address
+  await owner_sender.send_transaction([
+    (ctx.ether.contract_address, 'transfer', [ctx.rando2.contract_address, MIN_PRICE, 0]),
+  ])
+
+  # approve marketplace
+  await rando2_sender.send_transaction([
+    (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, MIN_PRICE - 1, 0]),
+  ])
+
+  # accept offer without enough ETH approved
+  await assert_revert(
+    rando2_sender.send_transaction([
+      (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
+    ])
+  )
+
+  # transfer ETH to buyer's address
+  await owner_sender.send_transaction([
+    (ctx.ether.contract_address, 'transfer', [ctx.rando1.contract_address, MIN_PRICE, 0]),
+  ])
+
+  # accept their own offer
+  await assert_revert(
+    rando1_sender.send_transaction([
+      (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
+    ]),
+    'Marketplace: offer creator cannot accept their own offer'
+  )
+
+  # approve marketplace / accept offer
+  await rando2_sender.send_transaction([
+    (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, 1, 0]),
+    (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
+  ])
+
+  # accept already accepted offer
+  await assert_revert(
+    owner_sender.send_transaction([
+      (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, MIN_PRICE, 0]),
+      (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
+    ]),
+    'Marketplace: offer does not exists'
+  )
+
+
+@pytest.mark.asyncio
+async def test_create_and_accept_offer_with_tricky_price(ctx_factory):
+  ctx = ctx_factory()
+  owner_sender = TransactionSender(ctx.owner, ctx.signers['owner'])
+  rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
+  rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
+
+  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  price = MIN_PRICE + 19
+
+  # approve marketplace / create offer
+  await rando1_sender.send_transaction([
+    (
+      ctx.rules_tokens.contract_address,
+      'approve',
+      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
+    ),
+    (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, price]),
+  ])
+
+  # transfer ETH to buyer's address
+  await owner_sender.send_transaction([
+    (ctx.ether.contract_address, 'transfer', [ctx.rando2.contract_address, price, 0]),
+  ])
+
+  # approve marketplace / accept offer
+  await rando2_sender.send_transaction([
+    (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, price, 0]),
+    (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
+  ])
+
+  # check balances
+  assert (await ctx.ether.balanceOf(ctx.rando1.contract_address).call()).result.balance == uint(price - tax(price))
+  assert (await ctx.ether.balanceOf(ctx.tax.contract_address).call()).result.balance == uint(tax(price))
+
+
+@pytest.mark.asyncio
 async def test_create_and_accept_offer(ctx_factory):
   ctx = ctx_factory()
   owner_sender = TransactionSender(ctx.owner, ctx.signers['owner'])
@@ -238,17 +331,13 @@ async def test_create_and_accept_offer(ctx_factory):
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
 
-  # approve marketplace
+  # approve marketplace / create offer
   await rando1_sender.send_transaction([
     (
       ctx.rules_tokens.contract_address,
       'approve',
       [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
     ),
-  ])
-
-  # create offer
-  await rando1_sender.send_transaction([
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
   ])
 
