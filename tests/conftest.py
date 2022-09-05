@@ -20,6 +20,7 @@ from utils.TransactionSender import TransactionSender
 sys.stdout = sys.stderr
 
 initialize_selector = get_selector_from_name('initialize')
+initializer_selector = get_selector_from_name('initializer')
 
 artist1 = uint(str_to_felt('artist1'))
 artist2 = uint(str_to_felt('artist2'))
@@ -45,6 +46,7 @@ async def build_copyable_deployment():
 
   signers = dict(
     owner=Signer(987654321123456789),
+    tax=Signer(123456789987654321),
     rando1=Signer(111111111),
     rando2=Signer(222222222),
   )
@@ -55,6 +57,8 @@ async def build_copyable_deployment():
   rules_cards_class = await declare(starknet, 'ruleslabs/contracts/RulesCards/RulesCards.cairo')
   rules_packs_class = await declare(starknet, 'ruleslabs/contracts/RulesPacks/RulesPacks.cairo')
   rules_tokens_class = await declare(starknet, 'ruleslabs/contracts/RulesTokens/RulesTokens.cairo')
+
+  erc20_class = await declare(starknet, 'openzeppelin/token/erc20/ERC20_Upgradeable.cairo')
 
   marketplace_class = await declare(starknet, 'src/marketplace/Marketplace.cairo')
 
@@ -117,15 +121,34 @@ async def build_copyable_deployment():
     ],
   )
 
+  ether = await deploy_proxy(
+    starknet,
+    erc20_class.abi,
+    [
+      erc20_class.class_hash,
+      initializer_selector,
+      7,
+      str_to_felt('Ether'),
+      str_to_felt('ETH'),
+      18,
+      2 ** 128 - 1,
+      0,
+      accounts.owner.contract_address,
+      accounts.owner.contract_address,
+    ],
+  )
+
   marketplace = await deploy_proxy(
     starknet,
     marketplace_class.abi,
     [
       marketplace_class.class_hash,
       initialize_selector,
-      2,
+      4,
       accounts.owner.contract_address,
+      accounts.tax.contract_address,
       rules_tokens.contract_address,
+      ether.contract_address,
     ],
   )
 
@@ -157,6 +180,7 @@ async def build_copyable_deployment():
     signers=signers,
     serialized_accounts=dict(
       owner=serialize_contract(accounts.owner, account_class.abi),
+      tax=serialize_contract(accounts.tax, account_class.abi),
       rando1=serialize_contract(accounts.rando1, account_class.abi),
       rando2=serialize_contract(accounts.rando2, account_class.abi),
     ),
@@ -166,6 +190,7 @@ async def build_copyable_deployment():
       rules_packs=serialize_contract(rules_packs, rules_packs_class.abi),
       rules_tokens=serialize_contract(rules_tokens, rules_tokens_class.abi),
       marketplace=serialize_contract(marketplace, marketplace_class.abi),
+      ether=serialize_contract(ether, erc20_class.abi),
     ),
   )
 

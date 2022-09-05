@@ -1,2 +1,3 @@
 ruleslabs-core
 ruleslabs-periphery
+openzeppelin-cairo-contracts

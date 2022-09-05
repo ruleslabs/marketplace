@@ -115,7 +115,7 @@ async def test_create_and_update_offer(ctx_factory):
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
   ])
 
-  # Check for offer creation event
+  # check offer creation event
   assert_event_emmited(
     tx_exec_info,
     from_address=ctx.marketplace.contract_address,
@@ -131,7 +131,7 @@ async def test_create_and_update_offer(ctx_factory):
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MAX_PRICE]),
   ])
 
-  # Check for offer creation event
+  # check offer creation event
   assert_event_emmited(
     tx_exec_info,
     from_address=ctx.marketplace.contract_address,
@@ -212,7 +212,7 @@ async def test_create_and_cancel_offer(ctx_factory):
     (ctx.marketplace.contract_address, 'cancelOffer', [card1_1_id.low, card1_1_id.high]),
   ])
 
-  # Check for offer cancelation event
+  # check offer cancelation event
   assert_event_emmited(
     tx_exec_info,
     from_address=ctx.marketplace.contract_address,
@@ -222,6 +222,88 @@ async def test_create_and_cancel_offer(ctx_factory):
 
   # check offer price
   assert (await ctx.marketplace.offerFor(card1_1_id).call()).result.price == 0
+
+
+#
+# Offer accpetation
+#
+
+@pytest.mark.asyncio
+async def test_create_and_accept_offer(ctx_factory):
+  ctx = ctx_factory()
+  owner_sender = TransactionSender(ctx.owner, ctx.signers['owner'])
+  rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
+  rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
+
+  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+
+  # approve marketplace
+  await rando1_sender.send_transaction([
+    (
+      ctx.rules_tokens.contract_address,
+      'approve',
+      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
+    ),
+  ])
+
+  # create offer
+  await rando1_sender.send_transaction([
+    (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
+  ])
+
+  # transfer ETH to buyer's address
+  await owner_sender.send_transaction([
+    (ctx.ether.contract_address, 'transfer', [ctx.rando2.contract_address, MIN_PRICE, 0]),
+  ])
+
+  # approve marketplace
+  await rando2_sender.send_transaction([
+    (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, MIN_PRICE, 0]),
+  ])
+
+  # accept offer
+  tx_exec_info = await rando2_sender.send_transaction([
+    (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
+  ])
+
+  # check offer accpetation event
+  assert_event_emmited(
+    tx_exec_info,
+    from_address=ctx.marketplace.contract_address,
+    name='OfferAccepted',
+    data=[ctx.rando2.contract_address, card1_1_id.low, card1_1_id.high]
+  )
+
+  # check balances
+  assert (await ctx.ether.balanceOf(ctx.rando1.contract_address).call()).result.balance == uint(MIN_PRICE)
+  assert (await ctx.ether.balanceOf(ctx.rando2.contract_address).call()).result.balance == uint(0)
+  assert (await ctx.rules_tokens.balanceOf(ctx.rando2.contract_address, card1_1_id).call()).result.balance == uint(1)
+
+
+#
+# Tax address
+#
+
+@pytest.mark.asyncio
+async def test_update_tax_address(ctx_factory):
+  ctx = ctx_factory()
+  owner_sender = TransactionSender(ctx.owner, ctx.signers['owner'])
+  rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
+
+  # check tax address
+  assert (await ctx.marketplace.taxAddress().call()).result.address == ctx.tax.contract_address
+
+  # update tax address with non owner caller
+  await assert_revert(
+    rando1_sender.send_transaction([(ctx.marketplace.contract_address, 'setTaxAddress', [ctx.rando1.contract_address])])
+  )
+
+  await owner_sender.send_transaction([
+    (ctx.marketplace.contract_address, 'setTaxAddress', [ctx.rando1.contract_address]),
+  ])
+
+  # check tax address
+  assert (await ctx.marketplace.taxAddress().call()).result.address == ctx.rando1.contract_address
 
 
 #
@@ -249,7 +331,7 @@ async def test_upgrade(ctx_factory):
 
   # should revert with double initialization
   await assert_revert(
-    owner_sender.send_transaction([(ctx.marketplace.contract_address, 'initialize', [1, 1])]),
+    owner_sender.send_transaction([(ctx.marketplace.contract_address, 'initialize', [1, 1, 1, 1])]),
     'Marketplace: contract already initialized'
   )
 

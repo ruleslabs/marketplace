@@ -3,6 +3,7 @@ import os
 import inspect
 import periphery
 import ruleslabs
+import openzeppelin
 
 from pathlib import Path
 from starkware.starknet.testing.contract import StarknetContract
@@ -44,6 +45,8 @@ def get_contract_class(path):
     path = os.path.abspath(os.path.dirname(inspect.getfile(periphery))) + "/" + path.replace('periphery/', '')
   elif path.startswith("ruleslabs/"):
     path = os.path.abspath(os.path.dirname(inspect.getfile(ruleslabs))) + "/" + path.replace('ruleslabs/', '')
+  elif path.startswith("openzeppelin/"):
+    path = os.path.abspath(os.path.dirname(inspect.getfile(openzeppelin))) + "/" + path.replace('openzeppelin/', '')
 
   contract_class = compile_starknet_files(
     files=[path],

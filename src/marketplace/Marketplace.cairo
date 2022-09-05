@@ -24,10 +24,10 @@ func initialize{
     syscall_ptr: felt*,
     pedersen_ptr: HashBuiltin*,
     range_check_ptr
-  }(owner: felt, _rules_tokens_address: felt):
+  }(owner: felt, _tax_address: felt, _rules_tokens_address: felt, _ether_address: felt):
   Ownable_initializer(owner)
 
-  Marketplace.initializer(owner, _rules_tokens_address)
+  Marketplace.initializer(owner, _tax_address, _rules_tokens_address, _ether_address)
   return ()
 end
 
@@ -63,6 +63,16 @@ func rulesTokens{
   return (address)
 end
 
+@view
+func taxAddress{
+    syscall_ptr: felt*,
+    pedersen_ptr: HashBuiltin*,
+    range_check_ptr
+  }() -> (address: felt):
+  let (address) = Marketplace.tax_address()
+  return (address)
+end
+
 # Offers
 
 @view
@@ -90,6 +100,17 @@ func upgrade{
   return ()
 end
 
+@external
+func setTaxAddress{
+    syscall_ptr : felt*,
+    pedersen_ptr : HashBuiltin*,
+    range_check_ptr
+  }(address: felt):
+  Ownable_only_owner()
+  Marketplace.set_tax_address(address)
+  return ()
+end
+
 #
 # Business logic
 #
@@ -111,6 +132,16 @@ func cancelOffer{
     range_check_ptr
   }(cardId: Uint256):
   Marketplace.cancel_offer(cardId)
+  return ()
+end
+
+@external
+func acceptOffer{
+    syscall_ptr: felt*,
+    pedersen_ptr: HashBuiltin*,
+    range_check_ptr
+  }(cardId: Uint256):
+  Marketplace.accept_offer(cardId)
   return ()
 end
 

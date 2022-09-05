@@ -3,10 +3,8 @@
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 from starkware.cairo.common.uint256 import Uint256
-from starkware.cairo.common.math import assert_not_zero, assert_le
-from starkware.starknet.common.syscalls import (
-  get_contract_address, get_caller_address
-)
+from starkware.cairo.common.math import assert_not_zero, assert_le, assert_not_equal
+from starkware.starknet.common.syscalls import get_contract_address, get_caller_address
 
 #
 # Libraries
@@ -16,7 +14,8 @@ from periphery.proxy.library import Proxy
 
 # Interfaces
 
-from ruleslabs.contracts.RulesTokens.IRulesTokens import IRulesTokens
+from ruleslabs.contracts.RulesTokens.IRulesTokens import IRulesTokens#
+from openzeppelin.token.erc20.interfaces.IERC20 import IERC20
 
 #
 # Constants
@@ -38,6 +37,16 @@ end
 
 @storage_var
 func rules_tokens_address_storage() -> (rules_cards_address: felt):
+end
+
+@storage_var
+func ether_address_storage() -> (ether_address: felt):
+end
+
+# Tax
+
+@storage_var
+func tax_address_storage() -> (tax_address: felt):
 end
 
 # Offers
@@ -62,6 +71,10 @@ end
 func OfferCanceled(card_id: Uint256):
 end
 
+@event
+func OfferAccepted(buyer: felt, card_id: Uint256):
+end
+
 namespace Marketplace:
 
   #
@@ -72,7 +85,7 @@ namespace Marketplace:
       syscall_ptr : felt*,
       pedersen_ptr : HashBuiltin*,
       range_check_ptr
-    }(owner: felt, _rules_tokens_address: felt):
+    }(owner: felt, _tax_address: felt, _rules_tokens_address: felt, _ether_address: felt):
     # assert not already initialized
     let (initialized) = contract_initialized.read()
     with_attr error_message("Marketplace: contract already initialized"):
@@ -82,6 +95,10 @@ namespace Marketplace:
 
     # other contracts
     rules_tokens_address_storage.write(_rules_tokens_address)
+    ether_address_storage.write(_ether_address)
+
+    # tax
+    tax_address_storage.write(_tax_address)
 
     return ()
   end
@@ -124,6 +141,17 @@ namespace Marketplace:
     return (address)
   end
 
+  # Other contracts
+
+  func tax_address{
+      syscall_ptr: felt*,
+      pedersen_ptr: HashBuiltin*,
+      range_check_ptr
+    }() -> (address: felt):
+    let (address) = tax_address_storage.read()
+    return (address)
+  end
+
   #
   # Setters
   #
@@ -140,6 +168,23 @@ namespace Marketplace:
 
     # change implementation
     Proxy.set_implementation(implementation)
+
+    return ()
+  end
+
+  func set_tax_address{
+      syscall_ptr : felt*,
+      pedersen_ptr : HashBuiltin*,
+      range_check_ptr
+    }(address: felt):
+    # make sure the address is not null
+    with_attr error_message("Marketplace: new tax address cannot be null"):
+      assert_not_zero(address)
+    end
+
+    # change tax address
+    tax_address_storage.write(address)
+
     return ()
   end
 
@@ -198,6 +243,54 @@ namespace Marketplace:
     offers_owner_storage.write(card_id, 0)
 
     OfferCanceled.emit(card_id)
+
+    return ()
+  end
+
+  func accept_offer{
+      syscall_ptr: felt*,
+      pedersen_ptr: HashBuiltin*,
+      range_check_ptr
+    }(card_id: Uint256):
+    alloc_locals
+
+    let (caller) = get_caller_address()
+
+    let (tax_address) = tax_address_storage.read()
+    let (rules_tokens) = rules_tokens_address_storage.read()
+    let (ether_address) = ether_address_storage.read()
+
+    let (price) = offers_price_storage.read(card_id)
+    let (owner) = offers_owner_storage.read(card_id)
+
+    with_attr error_message("Marketplace: offer does not exists"):
+      assert_not_zero(price)
+    end
+
+    with_attr error_message("Marketplace: offer creator cannot accept their own offer"):
+      assert_not_equal(owner, caller)
+    end
+
+    # transfer price amount to owner
+    IERC20.transferFrom(ether_address, sender=caller, recipient=owner, amount=Uint256(price, 0))
+
+    # transfer card to caller
+    let data = cast(0, felt*)
+    IRulesTokens.safeTransferFrom(
+      rules_tokens,
+      _from=owner,
+      to=caller,
+      token_id=card_id,
+      amount=Uint256(1, 0),
+      data_len=0,
+      data=data
+    )
+
+    # reset offer storage
+    offers_price_storage.write(card_id, 0)
+    offers_owner_storage.write(card_id, 0)
+
+    OfferAccepted.emit(caller, card_id)
 
     return ()
   end
