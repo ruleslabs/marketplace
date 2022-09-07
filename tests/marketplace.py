@@ -121,7 +121,7 @@ async def test_create_and_update_offer(ctx_factory):
     tx_exec_info,
     from_address=ctx.marketplace.contract_address,
     name='OfferCreated',
-    data=[ctx.rando1.contract_address, card1_1_id.low, card1_1_id.high, MIN_PRICE]
+    data=[card1_1_id.low, card1_1_id.high, ctx.rando1.contract_address, MIN_PRICE]
   )
 
   # check offer price
@@ -137,7 +137,7 @@ async def test_create_and_update_offer(ctx_factory):
     tx_exec_info,
     from_address=ctx.marketplace.contract_address,
     name='OfferCreated',
-    data=[ctx.rando1.contract_address, card1_1_id.low, card1_1_id.high, MAX_PRICE]
+    data=[card1_1_id.low, card1_1_id.high, ctx.rando1.contract_address, MAX_PRICE]
   )
 
   # check offer price
@@ -361,7 +361,7 @@ async def test_create_and_accept_offer(ctx_factory):
     tx_exec_info,
     from_address=ctx.marketplace.contract_address,
     name='OfferAccepted',
-    data=[ctx.rando2.contract_address, card1_1_id.low, card1_1_id.high]
+    data=[card1_1_id.low, card1_1_id.high, ctx.rando2.contract_address]
   )
 
   # check balances

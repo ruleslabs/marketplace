@@ -67,7 +67,7 @@ end
 #
 
 @event
-func OfferCreated(owner: felt, card_id: Uint256, price: felt):
+func OfferCreated(card_id: Uint256, owner: felt, price: felt):
 end
 
 @event
@@ -75,7 +75,7 @@ func OfferCanceled(card_id: Uint256):
 end
 
 @event
-func OfferAccepted(buyer: felt, card_id: Uint256):
+func OfferAccepted(card_id: Uint256, buyer: felt):
 end
 
 namespace Marketplace:
@@ -219,7 +219,7 @@ namespace Marketplace:
     offers_price_storage.write(card_id, price)
     offers_owner_storage.write(card_id, caller)
 
-    OfferCreated.emit(caller, card_id, price)
+    OfferCreated.emit(card_id, caller, price)
 
     return ()
   end
@@ -299,7 +299,7 @@ namespace Marketplace:
     offers_price_storage.write(card_id, 0)
     offers_owner_storage.write(card_id, 0)
 
-    OfferAccepted.emit(caller, card_id)
+    OfferAccepted.emit(card_id, caller)
 
     return ()
   end
