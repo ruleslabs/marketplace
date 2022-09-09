@@ -23,7 +23,7 @@ from openzeppelin.token.erc20.interfaces.IERC20 import IERC20
 
 const VERSION = '0.1.0'
 const MIN_PRICE = 10 ** 13 # 0.00001 ETH
-const MAX_PRICE = 10 ** 32 # 100,000,000,000,000 ETH
+const MAX_PRICE = 10 ** 26 # 100,000,000 ETH
 
 const TAX_PERCENT = 50000 # 5%
 const TAX_DIVIDER = 1000000 / TAX_PERCENT

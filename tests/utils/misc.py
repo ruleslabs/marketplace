@@ -20,7 +20,7 @@ _root = Path(__file__).parent.parent.parent
 
 
 MIN_PRICE = 10 ** 13
-MAX_PRICE = 10 ** 32
+MAX_PRICE = 10 ** 26
 TAX_PERCENT = 50_000 # 5%
 
 
