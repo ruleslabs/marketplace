@@ -58,7 +58,7 @@ async def build_copyable_deployment():
   rules_packs_class = await declare(starknet, 'ruleslabs/contracts/RulesPacks/RulesPacks.cairo')
   rules_tokens_class = await declare(starknet, 'ruleslabs/contracts/RulesTokens/RulesTokens.cairo')
 
-  erc20_class = await declare(starknet, 'openzeppelin/token/erc20/ERC20_Upgradeable.cairo')
+  erc20_class = await declare(starknet, 'openzeppelin/token/erc20/presets/ERC20Upgradeable.cairo')
 
   marketplace_class = await declare(starknet, 'src/marketplace/Marketplace.cairo')
 

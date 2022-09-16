@@ -14,8 +14,8 @@ from periphery.proxy.library import Proxy
 
 # Interfaces
 
-from ruleslabs.contracts.RulesTokens.IRulesTokens import IRulesTokens#
-from openzeppelin.token.erc20.interfaces.IERC20 import IERC20
+from ruleslabs.contracts.RulesTokens.IRulesTokens import IRulesTokens
+from openzeppelin.token.erc20.IERC20 import IERC20
 
 #
 # Constants
