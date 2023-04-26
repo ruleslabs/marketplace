@@ -16,18 +16,17 @@ from utils.misc import (
 from utils.TransactionSender import TransactionSender
 
 
-BASE_URI = 0x42
-
-
 # pytest-xdest only shows stderr
 sys.stdout = sys.stderr
 
 initialize_selector = get_selector_from_name('initialize')
 initializer_selector = get_selector_from_name('initializer')
 
-cardModel1 = (uint(str_to_felt('artist1')), 1, 0) # (artist, season, scarcity)
-cardModel2 = (uint(str_to_felt('artist2')), 1, 0)
-cardModel3 = (uint(str_to_felt('artist3')), 1, 0)
+BASE_URI = 0x42
+
+card1 = (uint(str_to_felt('artist1')), 1, 0, 1) # (artist, season, scarcity)
+card2 = (uint(str_to_felt('artist2')), 1, 0, 1)
+card3 = (uint(str_to_felt('artist3')), 1, 0, 1)
 
 metadata = (1, 0x1220)
 
@@ -120,10 +119,9 @@ async def build_copyable_deployment():
 
   await owner_sender.send_transaction([
     (rules.contract_address, 'createAndMintCard', [
-      *to_starknet_args(cardModel1),
-      1,
-      *metadata,
       accounts.rando1.contract_address,
+      *to_starknet_args(card1),
+      *metadata,
     ]),
 
     (rules.contract_address, 'setMarketplace', [marketplace.contract_address]),

@@ -5,7 +5,7 @@ from utils.misc import (
   assert_revert, uint, assert_event_emmited, str_to_felt, declare, MAX_PRICE, MIN_PRICE, tax
 )
 
-from conftest import cardModel1
+from conftest import card1
 
 
 VERSION = str_to_felt('0.2.0')
@@ -21,7 +21,7 @@ async def test_create_offer_for_invalid_card(ctx_factory):
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
   rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
 
-  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  card1_1_id = (await ctx.rules.cardId((card1)).call()).result.card_id
 
   # create offer for card that do not exists
   await assert_revert(
@@ -43,7 +43,7 @@ async def test_create_offer_with_invalid_price(ctx_factory):
   ctx = ctx_factory()
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
 
-  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  card1_1_id = (await ctx.rules.cardId((card1)).call()).result.card_id
 
   # create offer with price too low
   await assert_revert(
@@ -67,7 +67,7 @@ async def test_create_and_update_offer(ctx_factory):
   ctx = ctx_factory()
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
 
-  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  card1_1_id = (await ctx.rules.cardId((card1)).call()).result.card_id
 
   # create valid offer
   tx_exec_info = await rando1_sender.send_transaction([
@@ -112,7 +112,7 @@ async def test_cancel_invalid_offer(ctx_factory):
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
   rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
 
-  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  card1_1_id = (await ctx.rules.cardId((card1)).call()).result.card_id
 
   # cancel offer that does not exists
   await assert_revert(
@@ -141,7 +141,7 @@ async def test_create_and_cancel_offer(ctx_factory):
   ctx = ctx_factory()
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
 
-  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  card1_1_id = (await ctx.rules.cardId((card1)).call()).result.card_id
 
   # create offer
   await rando1_sender.send_transaction([
@@ -176,7 +176,7 @@ async def test_create_and_accept_invalid_offer(ctx_factory):
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
   rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
 
-  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  card1_1_id = (await ctx.rules.cardId((card1)).call()).result.card_id
 
   # create offer
   await rando1_sender.send_transaction([
@@ -236,7 +236,7 @@ async def test_create_and_accept_offer_with_tricky_price(ctx_factory):
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
   rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
 
-  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  card1_1_id = (await ctx.rules.cardId((card1)).call()).result.card_id
   price = MIN_PRICE + 19
 
   # create offer
@@ -267,7 +267,7 @@ async def test_create_and_accept_offer(ctx_factory):
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
   rando2_sender = TransactionSender(ctx.rando2, ctx.signers['rando2'])
 
-  card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
+  card1_1_id = (await ctx.rules.cardId((card1)).call()).result.card_id
 
   # create offer
   await rando1_sender.send_transaction([
@@ -301,7 +301,7 @@ async def test_create_and_accept_offer(ctx_factory):
   assert (await ctx.ether.balanceOf(ctx.rando1.contract_address).call()).result.balance == uint(MIN_PRICE - tax(MIN_PRICE))
   assert (await ctx.ether.balanceOf(ctx.tax.contract_address).call()).result.balance == uint(tax(MIN_PRICE))
   assert (await ctx.ether.balanceOf(ctx.rando2.contract_address).call()).result.balance == uint(0)
-  assert (await ctx.rules_tokens.balanceOf(ctx.rando2.contract_address, card1_1_id).call()).result.balance == uint(1)
+  assert (await ctx.rules.balanceOf(ctx.rando2.contract_address, card1_1_id).call()).result.balance == uint(1)
 
 
 #
