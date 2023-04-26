@@ -16,21 +16,20 @@ from utils.misc import (
 from utils.TransactionSender import TransactionSender
 
 
+BASE_URI = 0x42
+
+
 # pytest-xdest only shows stderr
 sys.stdout = sys.stderr
 
 initialize_selector = get_selector_from_name('initialize')
 initializer_selector = get_selector_from_name('initializer')
 
-artist1 = uint(str_to_felt('artist1'))
-artist2 = uint(str_to_felt('artist2'))
-artist3 = uint(str_to_felt('artist3'))
+cardModel1 = (uint(str_to_felt('artist1')), 1, 0) # (artist, season, scarcity)
+cardModel2 = (uint(str_to_felt('artist2')), 1, 0)
+cardModel3 = (uint(str_to_felt('artist3')), 1, 0)
 
-cardModel1 = (artist1, 1, 0) # (artist, season, scarcity)
-cardModel2 = (artist2, 1, 0)
-cardModel3 = (artist3, 1, 0)
-
-metadata = (1, 1, 0x1220)
+metadata = (1, 0x1220)
 
 
 @pytest.fixture(scope='session')
@@ -53,14 +52,11 @@ async def build_copyable_deployment():
 
   account_class = await declare(starknet, 'periphery/account/Account.cairo')
 
-  rules_data_class = await declare(starknet, 'ruleslabs/contracts/RulesData/RulesData.cairo')
-  rules_cards_class = await declare(starknet, 'ruleslabs/contracts/RulesCards/RulesCards.cairo')
-  rules_packs_class = await declare(starknet, 'ruleslabs/contracts/RulesPacks/RulesPacks.cairo')
-  rules_tokens_class = await declare(starknet, 'ruleslabs/contracts/RulesTokens/RulesTokens.cairo')
+  rules_class = await declare(starknet, 'ruleslabs/Rules.cairo')
 
   erc20_class = await declare(starknet, 'openzeppelin/token/erc20/presets/ERC20Upgradeable.cairo')
 
-  marketplace_class = await declare(starknet, 'src/marketplace/Marketplace.cairo')
+  marketplace_class = await declare(starknet, 'src/Marketplace.cairo')
 
   accounts = SimpleNamespace(
     **{
@@ -73,51 +69,16 @@ async def build_copyable_deployment():
     }
   )
 
-  rules_data = await deploy_proxy(
+  rules = await deploy_proxy(
     starknet,
-    rules_data_class.abi,
+    rules_class.abi,
     [
-      rules_data_class.class_hash,
-      initialize_selector,
-      1,
-      accounts.owner.contract_address
-    ],
-  )
-  rules_cards = await deploy_proxy(
-    starknet,
-    rules_cards_class.abi,
-    [
-      rules_cards_class.class_hash,
-      initialize_selector,
-      2,
-      accounts.owner.contract_address,
-      rules_data.contract_address,
-    ],
-  )
-  rules_packs = await deploy_proxy(
-    starknet,
-    rules_packs_class.abi,
-    [
-      rules_packs_class.class_hash,
+      rules_class.class_hash,
       initialize_selector,
       3,
+      1,
+      BASE_URI,
       accounts.owner.contract_address,
-      rules_data.contract_address,
-      rules_cards.contract_address,
-    ],
-  )
-  rules_tokens = await deploy_proxy(
-    starknet,
-    rules_tokens_class.abi,
-    [
-      rules_tokens_class.class_hash,
-      initialize_selector,
-      5,
-      0x52756C6573,
-      0x52554C4553,
-      accounts.owner.contract_address,
-      rules_cards.contract_address,
-      rules_packs.contract_address,
     ],
   )
 
@@ -147,7 +108,7 @@ async def build_copyable_deployment():
       4,
       accounts.owner.contract_address,
       accounts.tax.contract_address,
-      rules_tokens.contract_address,
+      rules.contract_address,
       ether.contract_address,
     ],
   )
@@ -155,24 +116,17 @@ async def build_copyable_deployment():
   # Access control
   owner_sender = TransactionSender(accounts.owner, signers['owner'])
 
-  await owner_sender.send_transaction([
-    (rules_cards.contract_address, 'addMinter', [rules_tokens.contract_address]),
-    (rules_packs.contract_address, 'addMinter', [rules_tokens.contract_address]),
-  ])
-
-  # Create artists/card
+  # Setup Rules
 
   await owner_sender.send_transaction([
-    (rules_data.contract_address, 'createArtist', [*artist1]),
-    (rules_data.contract_address, 'createArtist', [*artist2]),
-    (rules_data.contract_address, 'createArtist', [*artist3]),
-
-    (rules_tokens.contract_address, 'createAndMintCard', [
+    (rules.contract_address, 'createAndMintCard', [
       *to_starknet_args(cardModel1),
       1,
       *metadata,
       accounts.rando1.contract_address,
     ]),
+
+    (rules.contract_address, 'setMarketplace', [marketplace.contract_address]),
   ])
 
   return SimpleNamespace(
@@ -185,10 +139,7 @@ async def build_copyable_deployment():
       rando2=serialize_contract(accounts.rando2, account_class.abi),
     ),
     serialized_contracts=dict(
-      rules_data=serialize_contract(rules_data, rules_data_class.abi),
-      rules_cards=serialize_contract(rules_cards, rules_cards_class.abi),
-      rules_packs=serialize_contract(rules_packs, rules_packs_class.abi),
-      rules_tokens=serialize_contract(rules_tokens, rules_tokens_class.abi),
+      rules=serialize_contract(rules, rules_class.abi),
       marketplace=serialize_contract(marketplace, marketplace_class.abi),
       ether=serialize_contract(ether, erc20_class.abi),
     ),

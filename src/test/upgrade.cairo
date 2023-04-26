@@ -4,38 +4,30 @@
 from starkware.cairo.common.bool import TRUE, FALSE
 from starkware.cairo.common.cairo_builtins import HashBuiltin
 
-#
-# Storage
-#
+//
+// Storage
+//
 
-# Initialization
+// Initialization
 
 @storage_var
-func contract_initialized() -> (initialized: felt):
-end
+func contract_initialized() -> (initialized: felt) {
+}
 
 @external
-func initialize{
-    syscall_ptr: felt*,
-    pedersen_ptr: HashBuiltin*,
-    range_check_ptr
-  }() -> ():
-  # assert not already initialized
-  let (initialized) = contract_initialized.read()
-  with_attr error_message("Mock: contract already initialized"):
-      assert initialized = FALSE
-  end
-  contract_initialized.write(TRUE)
+func initialize{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> () {
+  // assert not already initialized
+  let (initialized) = contract_initialized.read();
+  with_attr error_message("Mock: contract already initialized") {
+    assert initialized = FALSE;
+  }
+  contract_initialized.write(TRUE);
 
-  return ()
-end
+  return ();
+}
 
 @external
-func reset{
-    syscall_ptr: felt*,
-    pedersen_ptr: HashBuiltin*,
-    range_check_ptr
-  }() -> ():
-  contract_initialized.write(FALSE)
-  return ()
-end
+func reset{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}() -> () {
+  contract_initialized.write(FALSE);
+  return ();
+}

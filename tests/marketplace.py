@@ -1,21 +1,14 @@
 import pytest
-import asyncio
-
-from types import SimpleNamespace
-
-from starkware.starknet.testing.starknet import Starknet
-from starkware.starknet.definitions.error_codes import StarknetErrorCode
 
 from utils.TransactionSender import TransactionSender
 from utils.misc import (
-  deploy_proxy, assert_revert, uint, assert_event_emmited, str_to_felt, to_starknet_args, declare, MAX_PRICE, MIN_PRICE,
-  tax
+  assert_revert, uint, assert_event_emmited, str_to_felt, declare, MAX_PRICE, MIN_PRICE, tax
 )
 
-from conftest import cardModel1, cardModel2, cardModel3, metadata
+from conftest import cardModel1
 
 
-VERSION = str_to_felt('0.1.0')
+VERSION = str_to_felt('0.2.0')
 
 
 #
@@ -33,32 +26,15 @@ async def test_create_offer_for_invalid_card(ctx_factory):
   # create offer for card that do not exists
   await assert_revert(
     rando1_sender.send_transaction([(ctx.marketplace.contract_address, 'createOffer', [1, 1, MIN_PRICE])]),
-    'Marketplace: not allowed to transfer given card from owner wallet'
+    'Marketplace: caller does not own card'
   )
-
-  # create offer for card that marketplace cannot transfer
-  await assert_revert(
-    rando1_sender.send_transaction([
-      (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
-    ]),
-    'Marketplace: not allowed to transfer given card from owner wallet'
-  )
-
-  # approve marketplace
-  await rando1_sender.send_transaction([
-    (
-      ctx.rules_tokens.contract_address,
-      'approve',
-      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
-    ),
-  ])
 
   # create offer for card that marketplace can transfer but is owned by another acount
   await assert_revert(
     rando2_sender.send_transaction([
       (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
     ]),
-    'Marketplace: not allowed to transfer given card from owner wallet'
+    'Marketplace: caller does not own card'
   )
 
 
@@ -68,15 +44,6 @@ async def test_create_offer_with_invalid_price(ctx_factory):
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
-
-  # approve marketplace
-  await rando1_sender.send_transaction([
-    (
-      ctx.rules_tokens.contract_address,
-      'approve',
-      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
-    ),
-  ])
 
   # create offer with price too low
   await assert_revert(
@@ -101,15 +68,6 @@ async def test_create_and_update_offer(ctx_factory):
   rando1_sender = TransactionSender(ctx.rando1, ctx.signers['rando1'])
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
-
-  # approve marketplace
-  await rando1_sender.send_transaction([
-    (
-      ctx.rules_tokens.contract_address,
-      'approve',
-      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
-    ),
-  ])
 
   # create valid offer
   tx_exec_info = await rando1_sender.send_transaction([
@@ -164,13 +122,8 @@ async def test_cancel_invalid_offer(ctx_factory):
     'Marketplace: offer does not exists'
   )
 
-  # approve marketplace / create offer
+  # create offer
   await rando1_sender.send_transaction([
-    (
-      ctx.rules_tokens.contract_address,
-      'approve',
-      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
-    ),
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
   ])
 
@@ -190,13 +143,8 @@ async def test_create_and_cancel_offer(ctx_factory):
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
 
-  # approve marketplace / create offer
+  # create offer
   await rando1_sender.send_transaction([
-    (
-      ctx.rules_tokens.contract_address,
-      'approve',
-      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
-    ),
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
   ])
 
@@ -230,13 +178,8 @@ async def test_create_and_accept_invalid_offer(ctx_factory):
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
 
-  # approve marketplace / create offer
+  # create offer
   await rando1_sender.send_transaction([
-    (
-      ctx.rules_tokens.contract_address,
-      'approve',
-      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
-    ),
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
   ])
 
@@ -245,12 +188,12 @@ async def test_create_and_accept_invalid_offer(ctx_factory):
     (ctx.ether.contract_address, 'transfer', [ctx.rando2.contract_address, MIN_PRICE, 0]),
   ])
 
-  # approve marketplace
+  # allow marketplace
   await rando2_sender.send_transaction([
     (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, MIN_PRICE - 1, 0]),
   ])
 
-  # accept offer without enough ETH approved
+  # accept offer without enough ETH allowed
   await assert_revert(
     rando2_sender.send_transaction([
       (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
@@ -270,7 +213,7 @@ async def test_create_and_accept_invalid_offer(ctx_factory):
     'Marketplace: offer creator cannot accept their own offer'
   )
 
-  # approve marketplace / accept offer
+  # allow marketplace / accept offer
   await rando2_sender.send_transaction([
     (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, 1, 0]),
     (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
@@ -296,13 +239,8 @@ async def test_create_and_accept_offer_with_tricky_price(ctx_factory):
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
   price = MIN_PRICE + 19
 
-  # approve marketplace / create offer
+  # create offer
   await rando1_sender.send_transaction([
-    (
-      ctx.rules_tokens.contract_address,
-      'approve',
-      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
-    ),
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, price]),
   ])
 
@@ -311,7 +249,7 @@ async def test_create_and_accept_offer_with_tricky_price(ctx_factory):
     (ctx.ether.contract_address, 'transfer', [ctx.rando2.contract_address, price, 0]),
   ])
 
-  # approve marketplace / accept offer
+  # allow marketplace / accept offer
   await rando2_sender.send_transaction([
     (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, price, 0]),
     (ctx.marketplace.contract_address, 'acceptOffer', [card1_1_id.low, card1_1_id.high]),
@@ -331,13 +269,8 @@ async def test_create_and_accept_offer(ctx_factory):
 
   card1_1_id = (await ctx.rules_cards.getCardId((cardModel1, 1)).call()).result.card_id
 
-  # approve marketplace / create offer
+  # create offer
   await rando1_sender.send_transaction([
-    (
-      ctx.rules_tokens.contract_address,
-      'approve',
-      [ctx.marketplace.contract_address, card1_1_id.low, card1_1_id.high, 1, 0]
-    ),
     (ctx.marketplace.contract_address, 'createOffer', [card1_1_id.low, card1_1_id.high, MIN_PRICE]),
   ])
 
@@ -346,7 +279,7 @@ async def test_create_and_accept_offer(ctx_factory):
     (ctx.ether.contract_address, 'transfer', [ctx.rando2.contract_address, MIN_PRICE, 0]),
   ])
 
-  # approve marketplace
+  # allow marketplace
   await rando2_sender.send_transaction([
     (ctx.ether.contract_address, 'increaseAllowance', [ctx.marketplace.contract_address, MIN_PRICE, 0]),
   ])
