@@ -96,6 +96,16 @@ func setTaxAddress{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_p
   return ();
 }
 
+@external
+func setRulesTokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(address: felt) {
+  // modifiers
+  Ownable.only_owner();
+
+  // body
+  Marketplace.set_rules_tokens(address);
+  return ();
+}
+
 //
 // Business logic
 //

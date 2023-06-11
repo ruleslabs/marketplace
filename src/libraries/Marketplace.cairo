@@ -177,6 +177,20 @@ namespace Marketplace {
     return ();
   }
 
+  func set_rules_tokens{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr}(
+    address: felt
+  ) {
+    // make sure the address is not null
+    with_attr error_message("Marketplace: new rules tokens address cannot be null") {
+      assert_not_zero(address);
+    }
+
+    // change tax address
+    rules_tokens_address_storage.write(address);
+
+    return ();
+  }
+
   //
   // Business logic
   //
