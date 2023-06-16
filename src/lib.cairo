@@ -3,4 +3,4 @@ mod access;
 mod utils;
 mod token;
 
-// mod tests;
+mod tests;
