@@ -2,6 +2,7 @@ use array::{ ArrayTrait, SpanTrait };
 
 // locals
 use marketplace::marketplace::order::{ Order, Item, ERC20_Item, ERC1155_Item };
+use marketplace::marketplace::interface::Voucher;
 
 fn CHAIN_ID() -> felt252 {
   'SN_MAIN'
@@ -72,12 +73,12 @@ fn OTHER() -> starknet::ContractAddress {
 
 // OFFERER
 
-fn OFFERER_PUBLIC_KEY() -> felt252 {
-  0x1f3c942d7f492a37608cde0d77b884a5aa9e11d2919225968557370ddb5a5aa
-}
-
 fn OFFERER_DEPLOYED_ADDRESS() -> starknet::ContractAddress {
   starknet::contract_address_const::<0x1>()
+}
+
+fn OFFERER_PUBLIC_KEY() -> felt252 {
+  0x1f3c942d7f492a37608cde0d77b884a5aa9e11d2919225968557370ddb5a5aa
 }
 
 // OFFEREE
@@ -166,6 +167,27 @@ fn ERC1155_ERC20_ORDER_SIGNATURE() -> Span<felt252> {
 
   signature.append(1726358592003144046973488050783226419285786675296765593625279726901622921655);
   signature.append(649274182830509636730150756499692063841191143164645540663386691975573923431);
+
+  signature.span()
+}
+
+// VOUCHER
+
+fn ERC1155_VOUCHER() -> Voucher {
+  Voucher {
+    receiver: OFFERER_DEPLOYED_ADDRESS(),
+    token_id: ERC1155_IDENTIFIER(),
+    amount: ERC1155_AMOUNT(),
+    salt: 'salt',
+  }
+}
+
+// Not verifyed but mocked lazy ERC1155
+fn ERC1155_VOUCHER_SIGNATURE() -> Span<felt252> {
+  let mut signature = ArrayTrait::new();
+
+  signature.append(0xdead);
+  signature.append(0xdead);
 
   signature.span()
 }

@@ -34,8 +34,22 @@ mod LazyMinter {
     }
   }
 
+  // VOUCHER
+
   #[external]
   fn redeem_voucher_to(to: starknet::ContractAddress, voucher: Voucher, signature: Span<felt252>) {
     LazyMinter::redeem_voucher_to(:to, :voucher, :signature);
+  }
+
+  // ERC1155
+
+  #[view]
+  fn balance_of(account: starknet::ContractAddress, id: u256) -> u256 {
+    ERC1155::balance_of(:account, :id)
+  }
+
+  #[external]
+  fn mint(to: starknet::ContractAddress, id: u256, amount: u256, data: Span<felt252>) {
+    ERC1155::mint(:to, :id, :amount, :data);
   }
 }

@@ -118,7 +118,7 @@ mod Marketplace {
       order_signature: Span<felt252>
     ) {
       let offerer = voucher.receiver;
-      MarketplaceMessages::consume_valid_order_from(from: offerer, :order, signature: order_signature);
+      let hash = MarketplaceMessages::consume_valid_order_from(from: offerer, :order, signature: order_signature);
 
       // assert voucher and order offer item match
       match order.offer_item {
@@ -140,6 +140,15 @@ mod Marketplace {
 
       // transfer consideration to offerer
       _transfer_item_from(from: caller, to: offerer, item: order.consideration_item);
+
+      // Events
+      FulfillOrder(
+        :hash,
+        :offerer,
+        offeree: caller,
+        offer_item: order.offer_item,
+        consideration_item: order.consideration_item
+      );
     }
   }
 

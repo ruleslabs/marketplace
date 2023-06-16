@@ -6,6 +6,7 @@ use starknet::testing;
 // locals
 use marketplace::marketplace::Marketplace;
 use marketplace::marketplace::order::{ Order, Item };
+use marketplace::marketplace::interface::Voucher;
 use super::constants::{
   CHAIN_ID,
   BLOCK_TIMESTAMP,
@@ -23,11 +24,14 @@ use super::constants::{
   ERC20_ERC1155_ORDER_SIGNATURE,
   ERC1155_ERC20_ORDER,
   ERC1155_ERC20_ORDER_SIGNATURE,
+  ERC1155_VOUCHER,
+  ERC1155_VOUCHER_SIGNATURE,
 };
 use super::utils;
 use super::mocks::signer::Signer;
 use super::mocks::erc20::{ ERC20, IERC20Dispatcher, IERC20DispatcherTrait };
 use super::mocks::erc1155::{ ERC1155, IERC1155Dispatcher, IERC1155DispatcherTrait };
+use super::mocks::lazy_minter::LazyMinter;
 
 // dispatchers
 use rules_account::account::{ AccountABIDispatcher, AccountABIDispatcherTrait };
@@ -91,6 +95,20 @@ fn deploy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
   );
 
   erc1155
+}
+
+fn deploy_lazy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
+  let address = utils::deploy(LazyMinter::TEST_CLASS_HASH, calldata: ArrayTrait::<felt252>::new());
+  let lazy_erc1155 = IERC1155Dispatcher { contract_address: address };
+
+  lazy_erc1155.mint(
+    to: recipient,
+    id: ERC1155_IDENTIFIER(),
+    amount: ERC1155_AMOUNT(),
+    data: ArrayTrait::<felt252>::new().span()
+  );
+
+  lazy_erc1155
 }
 
 // Upgrade
@@ -379,6 +397,222 @@ fn test_fulfill_order_erc1155_erc20_cancelled() {
   Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
+// Lazy ERC1155 - ERC20
+
+#[test]
+#[available_gas(20000000)]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let voucher = ERC1155_VOUCHER();
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let order = ERC1155_ERC20_ORDER();
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  assert_state_before_order(:order);
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+
+  assert_state_after_voucher_and_order(:voucher, :order);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Invalid voucher and order match',))]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_voucher_token_id() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let mut voucher = ERC1155_VOUCHER();
+  voucher.token_id += 1;
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let order = ERC1155_ERC20_ORDER();
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Invalid voucher and order match',))]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_voucher_amount() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let mut voucher = ERC1155_VOUCHER();
+  voucher.amount += 1;
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let order = ERC1155_ERC20_ORDER();
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Invalid order signature',))]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_voucher_recipient() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let mut voucher = ERC1155_VOUCHER();
+  voucher.receiver = offeree.contract_address;
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let order = ERC1155_ERC20_ORDER();
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Order already consumed',))]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_already_consumed() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let voucher = ERC1155_VOUCHER();
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let order = ERC1155_ERC20_ORDER();
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Invalid order signature',))]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_signature() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let voucher = ERC1155_VOUCHER();
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let mut order = ERC1155_ERC20_ORDER();
+  order.salt += 1;
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Order ended',))]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_ended() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let voucher = ERC1155_VOUCHER();
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let order = ERC1155_ERC20_ORDER();
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  testing::set_block_timestamp(BLOCK_TIMESTAMP() + 1);
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Order already consumed',))]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_cancelled() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let voucher = ERC1155_VOUCHER();
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let order = ERC1155_ERC20_ORDER();
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offerer.contract_address);
+  Marketplace::cancel_order(:order, signature: order_signature);
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 //
 // Helpers
 //
@@ -387,12 +621,19 @@ fn assert_state_before_order(order: Order) {
   let offerer = OFFERER_DEPLOYED_ADDRESS();
   let offeree = OFFEREE_DEPLOYED_ADDRESS();
 
-  assert_item_balance(item: order.offer_item, owner: offerer, other: offeree, error: 'Offer item balance before');
+  assert_item_balance(
+    item: order.offer_item,
+    owner: offerer,
+    other: offeree,
+    other_balance: 0.into(),
+    error: 'Offer item balance after'
+  );
   assert_item_balance(
     item: order.consideration_item,
     owner: offeree,
     other: offerer,
-    error: 'Offer item balance before'
+    other_balance: 0.into(),
+    error: 'Cons item balance after'
   );
 }
 
@@ -400,29 +641,62 @@ fn assert_state_after_order(order: Order) {
   let offerer = OFFERER_DEPLOYED_ADDRESS();
   let offeree = OFFEREE_DEPLOYED_ADDRESS();
 
-  assert_item_balance(item: order.offer_item, owner: offeree, other: offerer, error: 'Offer item balance after');
+  assert_item_balance(
+    item: order.offer_item,
+    owner: offeree,
+    other: offerer,
+    other_balance: 0.into(),
+    error: 'Offer item balance after'
+  );
   assert_item_balance(
     item: order.consideration_item,
     owner: offerer,
     other: offeree,
-    error: 'Offer item balance after'
+    other_balance: 0.into(),
+    error: 'Cons item balance after'
   );
 }
 
-fn assert_item_balance(item: Item, owner: starknet::ContractAddress, other: starknet::ContractAddress, error: felt252) {
+fn assert_state_after_voucher_and_order(voucher: Voucher, order: Order) {
+  let offerer = OFFERER_DEPLOYED_ADDRESS();
+  let offeree = OFFEREE_DEPLOYED_ADDRESS();
+
+  assert_item_balance(
+    item: order.offer_item,
+    owner: offeree,
+    other: offerer,
+    other_balance: voucher.amount,
+    error: 'Offer item balance after'
+  );
+  assert_item_balance(
+    item: order.consideration_item,
+    owner: offerer,
+    other: offeree,
+    other_balance: 0.into(),
+    error: 'Cons item balance after'
+  );
+}
+
+fn assert_item_balance(
+  item: Item,
+  owner: starknet::ContractAddress,
+  other: starknet::ContractAddress,
+  other_balance: u256,
+  error: felt252
+) {
   match item {
     Item::ERC20(erc20_item) => {
       let erc20 = IERC20Dispatcher { contract_address: erc20_item.token };
 
       assert(erc20.balance_of(owner) == erc20_item.amount, error);
-      assert(erc20.balance_of(other) == 0.into(), error);
+      assert(erc20.balance_of(other) == other_balance, error);
     },
 
     Item::ERC1155(erc1155_item) => {
       let erc1155 = IERC1155Dispatcher { contract_address: erc1155_item.token };
 
       assert(erc1155.balance_of(owner, erc1155_item.identifier) == erc1155_item.amount, error);
-      assert(erc1155.balance_of(other, erc1155_item.identifier) == 0.into(), error);
+      assert(erc1155.balance_of(other, erc1155_item.identifier) == other_balance, error);
     },
   }
 }
