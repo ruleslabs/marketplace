@@ -1,5 +1,5 @@
-# Marketplace V1
+# Rules Marketplace
 
-Marketplace contract to buy and sell Rules cards.
+Rules Marketplace contract.
 
 for core contracts, see [core](https://github.com/ruleslabs/core) repository.
