@@ -9,7 +9,7 @@ use super::order::Order;
 #[abi]
 trait MarketplaceABI {
   #[external]
-  fn fulfill_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>);
+  fn fulfill_order(offerer: starknet::ContractAddress, order: Order, signature: Span<felt252>);
 
   #[external]
   fn cancel_order(order: Order, signature: Span<felt252>);
@@ -42,6 +42,27 @@ mod Marketplace {
   use marketplace::token::lazy_minter::{ ILazyMinterDispatcher, ILazyMinterDispatcherTrait };
 
   //
+  // Events
+  //
+
+  #[event]
+  fn FulfillOrder(
+    hash: felt252,
+    offerer: starknet::ContractAddress,
+    offeree: starknet::ContractAddress,
+    offer_item: Item,
+    consideration_item: Item,
+  ) {}
+
+  #[event]
+  fn CancelOrder(
+    hash: felt252,
+    offerer: starknet::ContractAddress,
+    offer_item: Item,
+    consideration_item: Item,
+  ) {}
+
+  //
   // Constructor
   //
 
@@ -55,22 +76,39 @@ mod Marketplace {
   //
 
   impl Marketplace of IMarketplace {
-    fn fulfill_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) {
-      MarketplaceMessages::consume_valid_order_from(:from, :order, :signature);
+    fn fulfill_order(offerer: starknet::ContractAddress, order: Order, signature: Span<felt252>) {
+      let hash = MarketplaceMessages::consume_valid_order_from(from: offerer, :order, :signature);
 
       // transfer offer to caller
       let caller = starknet::get_caller_address();
 
-      _transfer_item_from(:from, to: caller, item: order.offer_item);
+      _transfer_item_from(from: offerer, to: caller, item: order.offer_item);
 
       // transfer consideration to offerer
-      _transfer_item_from(from: caller, to: from, item: order.consideration_item);
+      _transfer_item_from(from: caller, to: offerer, item: order.consideration_item);
+
+      // Events
+      FulfillOrder(
+        :hash,
+        :offerer,
+        offeree: caller,
+        offer_item: order.offer_item,
+        consideration_item: order.consideration_item
+      );
     }
 
     fn cancel_order(order: Order, signature: Span<felt252>) {
       let caller = starknet::get_caller_address();
 
-      MarketplaceMessages::consume_valid_order_from(from: caller, :order, :signature);
+      let hash = MarketplaceMessages::consume_valid_order_from(from: caller, :order, :signature);
+
+      // Events
+      CancelOrder(
+        :hash,
+        offerer: caller,
+        offer_item: order.offer_item,
+        consideration_item: order.consideration_item
+      );
     }
 
     fn redeem_voucher_and_fulfill_order(
@@ -143,8 +181,8 @@ mod Marketplace {
   // Order
 
   #[external]
-  fn fulfill_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) {
-    Marketplace::fulfill_order_from(:from, :order, :signature);
+  fn fulfill_order(offerer: starknet::ContractAddress, order: Order, signature: Span<felt252>) {
+    Marketplace::fulfill_order(:offerer, :order, :signature);
   }
 
   #[external]

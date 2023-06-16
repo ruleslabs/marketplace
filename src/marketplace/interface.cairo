@@ -13,7 +13,7 @@ use marketplace::utils::serde::SpanSerde;
 
 #[abi]
 trait IMarketplace {
-  fn fulfill_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>);
+  fn fulfill_order(offerer: starknet::ContractAddress, order: Order, signature: Span<felt252>);
 
   fn cancel_order(order: Order, signature: Span<felt252>);
 
@@ -27,5 +27,5 @@ trait IMarketplace {
 
 #[abi]
 trait IMarketplaceMessages {
-  fn consume_valid_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>);
+  fn consume_valid_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) -> felt252;
 }

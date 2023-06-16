@@ -35,6 +35,10 @@ fn ORDER_SIGNER() -> starknet::ContractAddress {
   starknet::contract_address_const::<'order signer'>()
 }
 
+fn ORDER_HASH_1() -> felt252 {
+  0x5a13f4842d3a9b909b7427a4e5d69f78112aba6cccda56a026b8efd297c8383
+}
+
 fn ORDER_SIGNATURE_1() -> Span<felt252> {
   let mut signature = ArrayTrait::new();
 

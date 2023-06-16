@@ -8,6 +8,7 @@ use super::constants::{
   CHAIN_ID,
   BLOCK_TIMESTAMP,
   ORDER_1,
+  ORDER_HASH_1,
   ORDER_SIGNATURE_1,
   ORDER_SIGNER_PUBLIC_KEY,
 };
@@ -46,9 +47,13 @@ fn test_consume_valid_order_from_valid() {
   let signer = setup_signer(ORDER_SIGNER_PUBLIC_KEY());
 
   let order = ORDER_1();
+  let hash = ORDER_HASH_1();
   let signature = ORDER_SIGNATURE_1();
 
-  MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature);
+  assert(
+    MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature) == hash,
+    'Invalid order hash'
+  );
 }
 
 #[test]
@@ -77,9 +82,13 @@ fn test_consume_valid_order_from_already_consumed() {
   let signer = setup_signer(ORDER_SIGNER_PUBLIC_KEY());
 
   let order = ORDER_1();
+  let hash = ORDER_HASH_1();
   let signature = ORDER_SIGNATURE_1();
 
-  MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature);
+  assert(
+    MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature) == hash,
+    'Invalid order hash'
+  );
   MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature);
 }
 

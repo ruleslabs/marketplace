@@ -16,7 +16,7 @@ fn DOMAIN() -> Domain {
 #[abi]
 trait MarketplaceMessagesABI {
   #[external]
-  fn consume_valid_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>);
+  fn consume_valid_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) -> felt252;
 }
 
 #[contract]
@@ -48,7 +48,7 @@ mod MarketplaceMessages {
   //
 
   impl MarketplaceMessages of IMarketplaceMessages {
-    fn consume_valid_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) {
+    fn consume_valid_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) -> felt252 {
       // compute voucher message hash
       let hash = order.compute_hash_from(:from, domain: DOMAIN());
 
@@ -65,13 +65,15 @@ mod MarketplaceMessages {
 
         assert(block_timestamp < order.end_time, 'Order ended');
       }
+
+      hash
     }
   }
 
   // Order
 
   #[external]
-  fn consume_valid_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) {
-    MarketplaceMessages::consume_valid_order_from(:from, :order, :signature);
+  fn consume_valid_order_from(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) -> felt252 {
+    MarketplaceMessages::consume_valid_order_from(:from, :order, :signature)
   }
 }
