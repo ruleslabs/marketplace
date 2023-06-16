@@ -16,6 +16,15 @@ mod Signer {
   }
 
   #[view]
+  fn supports_interface(interface_id: u32) -> bool {
+    if (interface_id == rules_account::account::interface::IACCOUNT_ID) {
+      true
+    } else {
+      false
+    }
+  }
+
+  #[view]
   fn is_valid_signature(message: felt252, signature: Array<felt252>) -> u32 {
     if (Account::_is_valid_signature(:message, signature: signature.span(), public_key: _public_key::read())) {
       account::interface::ERC1271_VALIDATED

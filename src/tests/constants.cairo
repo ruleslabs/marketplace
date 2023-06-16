@@ -1,4 +1,4 @@
-use array::ArrayTrait;
+use array::{ ArrayTrait, SpanTrait };
 
 // locals
 use marketplace::marketplace::order::{ Order, Item, ERC20_Item, ERC1155_Item };
@@ -68,4 +68,104 @@ fn OWNER() -> starknet::ContractAddress {
 
 fn OTHER() -> starknet::ContractAddress {
   starknet::contract_address_const::<20>()
+}
+
+// OFFERER
+
+fn OFFERER_PUBLIC_KEY() -> felt252 {
+  0x1f3c942d7f492a37608cde0d77b884a5aa9e11d2919225968557370ddb5a5aa
+}
+
+fn OFFERER_DEPLOYED_ADDRESS() -> starknet::ContractAddress {
+  starknet::contract_address_const::<0x1>()
+}
+
+// OFFEREE
+
+fn OFFEREE_PUBLIC_KEY() -> felt252 {
+  0x1766831fbcbc258a953dd0c0505ecbcd28086c673355c7a219bc031b710b0d6
+}
+
+fn OFFEREE_DEPLOYED_ADDRESS() -> starknet::ContractAddress {
+  starknet::contract_address_const::<0x2>()
+}
+
+// Token items
+
+fn OFFER_ITEM() -> starknet::ContractAddress {
+  starknet::contract_address_const::<0x3>()
+}
+
+fn CONSIDERATION_TOKEN() -> starknet::ContractAddress {
+  starknet::contract_address_const::<0x4>()
+}
+
+// ERC20
+
+fn ERC20_AMOUNT() -> u256 {
+  u256 { low: '20 amount low', high: '20 amount high' }
+}
+
+// ERC1155
+
+fn ERC1155_IDENTIFIER() -> u256 {
+  u256 { low: '1155 id low', high: '1155 id high' }
+}
+
+fn ERC1155_AMOUNT() -> u256 {
+  u256 { low: '1155 amount low', high: '1155 amount high' }
+}
+
+// ERC20 - ERC1155 ORDER
+
+fn ERC20_ERC1155_ORDER() -> Order {
+  Order {
+    offer_item: Item::ERC20(ERC20_Item {
+      token: OFFER_ITEM(),
+      amount: ERC20_AMOUNT(),
+    }),
+    consideration_item: Item::ERC1155(ERC1155_Item {
+      token: CONSIDERATION_TOKEN(),
+      amount: ERC1155_AMOUNT(),
+      identifier: ERC1155_IDENTIFIER(),
+    }),
+    end_time: BLOCK_TIMESTAMP() + 1,
+    salt: 'salt',
+  }
+}
+
+fn ERC20_ERC1155_ORDER_SIGNATURE() -> Span<felt252> {
+  let mut signature = ArrayTrait::new();
+
+  signature.append(1281060891488011359920073002560504883606194816097925964186379671190882885728);
+  signature.append(2296517848558767532445805739597068093247967935247609606190417237188864783597);
+
+  signature.span()
+}
+
+// ERC1155 - ERC20 ORDER
+
+fn ERC1155_ERC20_ORDER() -> Order {
+  Order {
+    offer_item: Item::ERC1155(ERC1155_Item {
+      token: OFFER_ITEM(),
+      amount: ERC1155_AMOUNT(),
+      identifier: ERC1155_IDENTIFIER(),
+    }),
+    consideration_item: Item::ERC20(ERC20_Item {
+      token: CONSIDERATION_TOKEN(),
+      amount: ERC20_AMOUNT(),
+    }),
+    end_time: BLOCK_TIMESTAMP() + 1,
+    salt: 'salt',
+  }
+}
+
+fn ERC1155_ERC20_ORDER_SIGNATURE() -> Span<felt252> {
+  let mut signature = ArrayTrait::new();
+
+  signature.append(1726358592003144046973488050783226419285786675296765593625279726901622921655);
+  signature.append(649274182830509636730150756499692063841191143164645540663386691975573923431);
+
+  signature.span()
 }

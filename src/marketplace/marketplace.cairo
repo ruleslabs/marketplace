@@ -1,10 +1,10 @@
 use array::SpanTrait;
 use zeroable::Zeroable;
 use rules_erc1155::utils::serde::SpanSerde;
-use rules_tokens::core::voucher::Voucher;
 
 // locals
 use super::order::Order;
+use super::interface::Voucher;
 
 #[abi]
 trait MarketplaceABI {

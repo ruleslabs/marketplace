@@ -1,7 +1,6 @@
-use rules_tokens::core::voucher::Voucher;
-
 // locals
 use marketplace::utils::serde::SpanSerde;
+use marketplace::marketplace::interface::Voucher;
 
 #[abi]
 trait ILazyMinter {
