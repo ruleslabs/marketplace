@@ -1,5 +1,6 @@
 use array::ArrayTrait;
-use traits::Into;
+use traits::{ Into, TryInto };
+use option::OptionTrait;
 use starknet::testing;
 
 // locals
@@ -9,6 +10,8 @@ use super::constants::{
   CHAIN_ID,
   BLOCK_TIMESTAMP,
   OWNER,
+  OTHER,
+  ZERO,
   OFFERER_PUBLIC_KEY,
   OFFEREE_PUBLIC_KEY,
   OFFERER_DEPLOYED_ADDRESS,
@@ -88,6 +91,76 @@ fn deploy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
   );
 
   erc1155
+}
+
+// Upgrade
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Caller is not the owner',))]
+fn test_upgrade_unauthorized() {
+  setup();
+
+  testing::set_caller_address(OTHER());
+  Marketplace::upgrade(new_implementation: 'new implementation'.try_into().unwrap());
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Caller is the zero address',))]
+fn test_upgrade_from_zero() {
+  setup();
+
+  testing::set_caller_address(ZERO());
+  Marketplace::upgrade(new_implementation: 'new implementation'.try_into().unwrap());
+}
+
+// Cancel order
+
+#[test]
+#[available_gas(20000000)]
+fn test_cancel_order() {
+  setup();
+
+  let offerer = deploy_offerer();
+
+  let order = ERC20_ERC1155_ORDER();
+  let signature = ERC20_ERC1155_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offerer.contract_address);
+  Marketplace::cancel_order(:order, :signature);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Order already consumed',))]
+fn test_cancel_order_already_canceled() {
+  setup();
+
+  let offerer = deploy_offerer();
+
+  let order = ERC20_ERC1155_ORDER();
+  let signature = ERC20_ERC1155_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offerer.contract_address);
+  Marketplace::cancel_order(:order, :signature);
+  Marketplace::cancel_order(:order, :signature);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Invalid order signature',))]
+fn test_cancel_order_unauthorized() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let order = ERC20_ERC1155_ORDER();
+  let signature = ERC20_ERC1155_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::cancel_order(:order, :signature);
 }
 
 // ERC20 - ERC1155
@@ -170,6 +243,28 @@ fn test_fulfill_order_erc20_erc1155_ended() {
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
 
   testing::set_block_timestamp(BLOCK_TIMESTAMP() + 1);
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+}
+
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Order already consumed',))]
+fn test_fulfill_order_erc20_erc1155_cancelled() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let erc20 = deploy_erc20(recipient: offerer.contract_address, initial_supply: ERC20_AMOUNT());
+  let erc1155 = deploy_erc1155(recipient: offeree.contract_address);
+
+  let order = ERC20_ERC1155_ORDER();
+  let signature = ERC20_ERC1155_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offerer.contract_address);
+  Marketplace::cancel_order(:order, :signature);
+
   testing::set_caller_address(offeree.contract_address);
   Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
@@ -257,13 +352,31 @@ fn test_fulfill_order_erc1155_erc20_ended() {
   let order = ERC1155_ERC20_ORDER();
   let signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
-  assert_state_before_order(:order);
-
   testing::set_block_timestamp(BLOCK_TIMESTAMP() + 1);
   testing::set_caller_address(offeree.contract_address);
   Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+}
 
-  assert_state_after_order(:order);
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Order already consumed',))]
+fn test_fulfill_order_erc1155_erc20_cancelled() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let erc1155 = deploy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let order = ERC1155_ERC20_ORDER();
+  let signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  testing::set_caller_address(offerer.contract_address);
+  Marketplace::cancel_order(:order, :signature);
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 //
