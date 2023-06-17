@@ -32,8 +32,24 @@ fn ORDER_1() -> Order {
   }
 }
 
-fn ORDER_SIGNER() -> starknet::ContractAddress {
-  starknet::contract_address_const::<'order signer'>()
+fn ORDER_NEVER_ENDING_1() -> Order {
+  Order {
+    offer_item: Item::ERC1155(ERC1155_Item {
+      token: starknet::contract_address_const::<'offer token 1'>(),
+      identifier: u256 { low: 'offer id 1 low', high: 'offer id 1 high' },
+      amount: u256 { low: 'offer qty 1 low', high: 'offer qty 1 high' },
+    }),
+    consideration_item: Item::ERC20(ERC20_Item {
+      token: starknet::contract_address_const::<'consideration token 1'>(),
+      amount: u256 { low: 'cons qty 1 low', high: 'cons qty 1 high' },
+    }),
+    end_time: 0,
+    salt: 'salt 1',
+  }
+}
+
+fn ORDER_SIGNER_DEPLOYED_ADDRESS() -> starknet::ContractAddress {
+  starknet::contract_address_const::<0x1>()
 }
 
 fn ORDER_HASH_1() -> felt252 {
@@ -45,6 +61,15 @@ fn ORDER_SIGNATURE_1() -> Span<felt252> {
 
   signature.append(876402741576646565148770586865873811316250132106631758270158427849694173024);
   signature.append(514159716373770259544679914962644045541061449832249102721974179788564699846);
+
+  signature.span()
+}
+
+fn ORDER_NEVER_ENDING_SIGNATURE_1() -> Span<felt252> {
+  let mut signature = ArrayTrait::new();
+
+  signature.append(3210214247380703542994973286972689220748965902345806966092546787159936036487);
+  signature.append(2690570938561731535554890091946750695329299952767417363992914417361837008483);
 
   signature.span()
 }

@@ -493,19 +493,6 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_voucher_recipient
   Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order already consumed',))]
@@ -600,18 +587,6 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_cancelled() {
   testing::set_caller_address(offeree.contract_address);
   Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 //
 // Helpers
