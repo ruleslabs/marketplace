@@ -32,7 +32,9 @@ struct ERC1155_Item {
 
 #[derive(Serde, Copy, Drop)]
 enum Item {
+  Native: (),
   ERC20: ERC20_Item,
+  ERC721: (),
   ERC1155: ERC1155_Item,
 }
 
@@ -53,12 +55,17 @@ fn hash_item(item: Item) -> felt252 {
   let mut hash = pedersen(0, ITEM_TYPE_HASH);
 
   match item {
+    Item::Native(()) => { panic_with_felt252('Unsupported item type'); },
+
     Item::ERC20(erc_20_item) => {
       hash = pedersen(hash, erc_20_item.token.into());
       hash = pedersen(hash, hash_u256(u256 { low: 0, high: 0 }));
       hash = pedersen(hash, hash_u256(erc_20_item.amount));
       hash = pedersen(hash, 1);
     },
+
+    Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
+
     Item::ERC1155(erc_1155_item) => {
       hash = pedersen(hash, erc_1155_item.token.into());
       hash = pedersen(hash, hash_u256(erc_1155_item.identifier));

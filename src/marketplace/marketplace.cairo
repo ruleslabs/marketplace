@@ -122,10 +122,14 @@ mod Marketplace {
 
       // assert voucher and order offer item match
       match order.offer_item {
+        Item::Native(()) => { panic_with_felt252('Unsupported item type'); },
+
         Item::ERC20(erc_20_item) => {
           assert(voucher.token_id.is_zero(), 'Invalid voucher and order match');
           assert(voucher.amount == erc_20_item.amount, 'Invalid voucher and order match');
         },
+
+        Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
 
         Item::ERC1155(erc_1155_item) => {
           assert(voucher.token_id == erc_1155_item.identifier, 'Invalid voucher and order match');
@@ -227,11 +231,15 @@ mod Marketplace {
     // TODO: add case fallback support
 
     match item {
+      Item::Native(()) => { panic_with_felt252('Unsupported item type'); },
+
       Item::ERC20(erc_20_item) => {
         let ERC20 = IERC20Dispatcher { contract_address: erc_20_item.token };
 
         ERC20.transferFrom(sender: from, recipient: to, amount: erc_20_item.amount);
       },
+
+      Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
 
       Item::ERC1155(erc_1155_item) => {
         let ERC1155 = IERC1155Dispatcher { contract_address: erc_1155_item.token };
@@ -259,9 +267,13 @@ mod Marketplace {
     let mut token: starknet::ContractAddress = starknet::contract_address_const::<0>();
 
     match item {
+      Item::Native(()) => { panic_with_felt252('Unsupported item type'); },
+
       Item::ERC20(erc_20_item) => {
         token = erc_20_item.token
       },
+
+      Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
 
       Item::ERC1155(erc_1155_item) => {
         token = erc_1155_item.token

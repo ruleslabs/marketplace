@@ -660,12 +660,16 @@ fn assert_item_balance(
   error: felt252
 ) {
   match item {
+    Item::Native(()) => { panic_with_felt252('Unsupported item type'); },
+
     Item::ERC20(erc20_item) => {
       let erc20 = IERC20Dispatcher { contract_address: erc20_item.token };
 
       assert(erc20.balance_of(owner) == erc20_item.amount, error);
       assert(erc20.balance_of(other) == other_balance, error);
     },
+
+    Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
 
     Item::ERC1155(erc1155_item) => {
       let erc1155 = IERC1155Dispatcher { contract_address: erc1155_item.token };
