@@ -11,8 +11,13 @@ trait IERC2981 {
   fn royalty_info(token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256);
 }
 
+#[abi]
+trait IERC165 {
+  fn supports_interface(interface_id: u32) -> bool;
+}
+
 #[contract]
-mod ERC1155_2981 {
+mod ERC1155RoyaltiesLazy {
   // locals
   use marketplace::utils::serde::SpanSerde;
   use super::super::erc1155::ERC1155;
@@ -58,7 +63,7 @@ mod ERC1155_2981 {
 
   #[view]
   fn supports_interface(interface_id: u32) -> bool {
-    ERC2981::supports_interface(:interface_id)
+    ERC1155::supports_interface(:interface_id) | ERC2981::supports_interface(:interface_id)
   }
 
   #[view]
@@ -76,5 +81,16 @@ mod ERC1155_2981 {
   #[external]
   fn mint(to: starknet::ContractAddress, id: u256, amount: u256, data: Span<felt252>) {
     ERC1155::mint(:to, :id, :amount, :data);
+  }
+
+  #[external]
+  fn safe_transfer_from(
+    from: starknet::ContractAddress,
+    to: starknet::ContractAddress,
+    id: u256,
+    amount: u256,
+    data: Span<felt252>
+  ) {
+    ERC1155::safe_transfer_from(:from, :to, :id, :amount, :data)
   }
 }

@@ -8,8 +8,13 @@ trait ILazyMinter {
   fn redeem_voucher_to(to: starknet::ContractAddress, voucher: Voucher, signature: Span<felt252>);
 }
 
+#[abi]
+trait IERC165 {
+  fn supports_interface(interface_id: u32) -> bool;
+}
+
 #[contract]
-mod LazyMinter {
+mod ERC1155Lazy {
   use array::{ ArrayTrait, SpanTrait };
 
   // locals
@@ -42,6 +47,11 @@ mod LazyMinter {
   }
 
   // ERC1155
+
+  #[view]
+  fn supports_interface(interface_id: u32) -> bool {
+    ERC1155::supports_interface(:interface_id)
+  }
 
   #[view]
   fn balance_of(account: starknet::ContractAddress, id: u256) -> u256 {

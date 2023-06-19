@@ -95,6 +95,11 @@ mod ERC1155 {
     }
   }
 
+  #[view]
+  fn supports_interface(interface_id: u32) -> bool {
+    false
+  }
+
   // Balance
 
   #[view]
@@ -140,21 +145,21 @@ mod ERC1155 {
 
     // Decrease sender balance
     if (from.is_non_zero()) {
-    let from_balance = _balances::read((id, from));
-    assert(from_balance >= amount, 'ERC1155: insufficient balance');
+      let from_balance = _balances::read((id, from));
+      assert(from_balance >= amount, 'ERC1155: insufficient balance');
 
-    _balances::write((id, from), from_balance - amount);
+      _balances::write((id, from), from_balance - amount);
     }
 
     // Increase recipient balance
     if (to.is_non_zero()) {
-    let to_balance = _balances::read((id, to));
-    _balances::write((id, to), to_balance + amount);
+      let to_balance = _balances::read((id, to));
+      _balances::write((id, to), to_balance + amount);
     }
 
     // Safe transfer check
     if (to.is_non_zero()) {
-        _do_safe_transfer_acceptance_check(:operator, :from, :to, :id, :amount, :data);
+      _do_safe_transfer_acceptance_check(:operator, :from, :to, :id, :amount, :data);
     }
   }
 

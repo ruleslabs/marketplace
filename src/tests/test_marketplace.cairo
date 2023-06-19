@@ -33,8 +33,8 @@ use super::utils;
 use super::mocks::signer::Signer;
 use super::mocks::erc20::{ ERC20, IERC20Dispatcher, IERC20DispatcherTrait };
 use super::mocks::erc1155::{ ERC1155, IERC1155Dispatcher, IERC1155DispatcherTrait };
-use super::mocks::lazy_minter::LazyMinter;
-use super::mocks::erc1155_2981::ERC1155_2981;
+use super::mocks::erc1155_lazy::ERC1155Lazy;
+use super::mocks::erc1155_royalties_lazy::ERC1155RoyaltiesLazy;
 
 // dispatchers
 use rules_account::account::{ AccountABIDispatcher, AccountABIDispatcherTrait };
@@ -101,7 +101,7 @@ fn deploy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
 }
 
 fn deploy_lazy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
-  let address = utils::deploy(LazyMinter::TEST_CLASS_HASH, calldata: ArrayTrait::<felt252>::new());
+  let address = utils::deploy(ERC1155Lazy::TEST_CLASS_HASH, calldata: ArrayTrait::<felt252>::new());
   let lazy_erc1155 = IERC1155Dispatcher { contract_address: address };
 
   lazy_erc1155.mint(
@@ -114,7 +114,7 @@ fn deploy_lazy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatch
   lazy_erc1155
 }
 
-fn deploy_erc1155_2981(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
+fn deploy_erc1155_royalties(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
   let mut calldata = ArrayTrait::<felt252>::new();
 
   let royalties_receiver = ROYALTIES_RECEIVER();
@@ -124,17 +124,17 @@ fn deploy_erc1155_2981(recipient: starknet::ContractAddress) -> IERC1155Dispatch
   calldata.append(royalties_amount.low.into());
   calldata.append(royalties_amount.high.into());
 
-  let address = utils::deploy(ERC1155_2981::TEST_CLASS_HASH, :calldata);
-  let erc1155_2981 = IERC1155Dispatcher { contract_address: address };
+  let address = utils::deploy(ERC1155RoyaltiesLazy::TEST_CLASS_HASH, :calldata);
+  let erc1155_royalties = IERC1155Dispatcher { contract_address: address };
 
-  erc1155_2981.mint(
+  erc1155_royalties.mint(
     to: recipient,
     id: ERC1155_IDENTIFIER(),
     amount: ERC1155_AMOUNT(),
     data: ArrayTrait::<felt252>::new().span()
   );
 
-  erc1155_2981
+  erc1155_royalties
 }
 
 // Upgrade
@@ -625,7 +625,7 @@ fn test_fulfill_order_erc20_erc1155_with_royalties() {
   let offeree = deploy_offeree();
 
   let erc20 = deploy_erc20(recipient: offerer.contract_address, initial_supply: ERC20_AMOUNT());
-  let erc1155_2981 = deploy_erc1155_2981(recipient: offeree.contract_address);
+  let erc1155_royalties = deploy_erc1155_royalties(recipient: offeree.contract_address);
 
   let order = ERC20_ERC1155_ORDER();
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
@@ -651,7 +651,7 @@ fn test_fulfill_order_erc1155_erc20_with_royalties() {
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let erc1155_2981 = deploy_erc1155_2981(recipient: offerer.contract_address);
+  let erc1155_royalties = deploy_erc1155_royalties(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let order = ERC1155_ERC20_ORDER();
@@ -669,6 +669,31 @@ fn test_fulfill_order_erc1155_erc20_with_royalties() {
 }
 
 // Lazy ERC1155_2981 - ERC20
+
+#[test]
+#[available_gas(20000000)]
+fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_with_royalties() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let voucher = ERC1155_VOUCHER();
+  let voucher_signature = ERC1155_VOUCHER_SIGNATURE();
+
+  let order = ERC1155_ERC20_ORDER();
+  let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  assert_state_before_order(:order);
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+
+  assert_state_after_voucher_and_order(:voucher, :order);
+}
 
 // TODO
 

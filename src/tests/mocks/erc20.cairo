@@ -7,14 +7,36 @@ trait IERC20 {
   fn transfer_from(sender: starknet::ContractAddress, recipient: starknet::ContractAddress, amount: u256) -> bool;
 }
 
+#[abi]
+trait IERC165 {
+  fn supports_interface(interface_id: u32) -> bool;
+}
+
 #[contract]
 mod ERC20 {
   use super::IERC20;
   use zeroable::Zeroable;
 
+  //
+  // Storage
+  //
+
   struct Storage {
     _balances: LegacyMap<starknet::ContractAddress, u256>,
   }
+
+  //
+  // Constructor
+  //
+
+  #[constructor]
+  fn constructor(initial_supply: u256, recipient: starknet::ContractAddress) {
+    _mint(recipient, initial_supply);
+  }
+
+  //
+  // Interface impl
+  //
 
   impl ERC20 of IERC20 {
     fn balance_of(account: starknet::ContractAddress) -> u256 {
@@ -27,9 +49,9 @@ mod ERC20 {
     }
   }
 
-  #[constructor]
-  fn constructor(initial_supply: u256, recipient: starknet::ContractAddress) {
-    _mint(recipient, initial_supply);
+  #[view]
+  fn supports_interface(interface_id: u32) -> bool {
+    false
   }
 
   #[view]
