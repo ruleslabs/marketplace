@@ -100,21 +100,21 @@ fn deploy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
   erc1155
 }
 
-fn deploy_lazy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
+fn deploy_erc1155_lazy(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
   let address = utils::deploy(ERC1155Lazy::TEST_CLASS_HASH, calldata: ArrayTrait::<felt252>::new());
-  let lazy_erc1155 = IERC1155Dispatcher { contract_address: address };
+  let erc1155_lazy = IERC1155Dispatcher { contract_address: address };
 
-  lazy_erc1155.mint(
+  erc1155_lazy.mint(
     to: recipient,
     id: ERC1155_IDENTIFIER(),
     amount: ERC1155_AMOUNT(),
     data: ArrayTrait::<felt252>::new().span()
   );
 
-  lazy_erc1155
+  erc1155_lazy
 }
 
-fn deploy_erc1155_royalties(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
+fn deploy_erc1155_royalties_lazy(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
   let mut calldata = ArrayTrait::<felt252>::new();
 
   let royalties_receiver = ROYALTIES_RECEIVER();
@@ -433,7 +433,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20() {
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_lazy = deploy_erc1155_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let voucher = ERC1155_VOUCHER();
@@ -459,7 +459,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_voucher_token_id(
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_lazy = deploy_erc1155_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let mut voucher = ERC1155_VOUCHER();
@@ -482,7 +482,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_voucher_amount() 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_lazy = deploy_erc1155_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let mut voucher = ERC1155_VOUCHER();
@@ -505,7 +505,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_voucher_recipient
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_lazy = deploy_erc1155_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let mut voucher = ERC1155_VOUCHER();
@@ -528,7 +528,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_already_consumed() {
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_lazy = deploy_erc1155_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let voucher = ERC1155_VOUCHER();
@@ -552,7 +552,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_invalid_signature() {
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_lazy = deploy_erc1155_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let voucher = ERC1155_VOUCHER();
@@ -575,7 +575,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_ended() {
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_lazy = deploy_erc1155_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let voucher = ERC1155_VOUCHER();
@@ -598,7 +598,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_cancelled() {
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_lazy = deploy_erc1155_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let voucher = ERC1155_VOUCHER();
@@ -625,7 +625,7 @@ fn test_fulfill_order_erc20_erc1155_with_royalties() {
   let offeree = deploy_offeree();
 
   let erc20 = deploy_erc20(recipient: offerer.contract_address, initial_supply: ERC20_AMOUNT());
-  let erc1155_royalties = deploy_erc1155_royalties(recipient: offeree.contract_address);
+  let erc1155_royalties_lazy = deploy_erc1155_royalties_lazy(recipient: offeree.contract_address);
 
   let order = ERC20_ERC1155_ORDER();
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
@@ -651,7 +651,7 @@ fn test_fulfill_order_erc1155_erc20_with_royalties() {
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let erc1155_royalties = deploy_erc1155_royalties(recipient: offerer.contract_address);
+  let erc1155_royalties_lazy = deploy_erc1155_royalties_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let order = ERC1155_ERC20_ORDER();
@@ -678,7 +678,7 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_with_royalties() {
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
 
-  let lazy_erc1155 = deploy_lazy_erc1155(recipient: offerer.contract_address);
+  let erc1155_royalties_lazy = deploy_erc1155_royalties_lazy(recipient: offerer.contract_address);
   let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
 
   let voucher = ERC1155_VOUCHER();
@@ -687,12 +687,20 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_with_royalties() {
   let order = ERC1155_ERC20_ORDER();
   let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
+  let royalties_receiver = ROYALTIES_RECEIVER();
+  let royalties_amount = ROYALTIES_AMOUNT();
+
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
   Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
 
-  assert_state_after_voucher_and_order(:voucher, :order);
+  assert_state_after_voucher_and_order_with_royalties(
+    :voucher,
+    :order,
+    receiver: royalties_receiver,
+    amount: royalties_amount
+  );
 }
 
 // TODO
@@ -742,22 +750,40 @@ fn assert_state_after_order(order: Order) {
 }
 
 fn assert_state_after_voucher_and_order(voucher: Voucher, order: Order) {
+  assert_state_after_voucher_and_order_with_royalties(
+    :voucher,
+    :order,
+    receiver: starknet::contract_address_const::<0>(),
+    amount: 0
+  )
+}
+
+fn assert_state_after_voucher_and_order_with_royalties(
+  voucher: Voucher,
+  order: Order,
+  receiver: starknet::ContractAddress,
+  amount: u256
+) {
   let offerer = OFFERER_DEPLOYED_ADDRESS();
   let offeree = OFFEREE_DEPLOYED_ADDRESS();
 
-  assert_item_balance(
+  assert_item_balance_with_royalties(
     item: order.offer_item,
     owner: offeree,
     other: offerer,
     other_balance: voucher.amount,
-    error: 'Offer item balance after'
+    error: 'Offer item balance after',
+    royalties_receiver: receiver,
+    royalties_amount: amount
   );
-  assert_item_balance(
+  assert_item_balance_with_royalties(
     item: order.consideration_item,
     owner: offerer,
     other: offeree,
     other_balance: 0.into(),
-    error: 'Cons item balance after'
+    error: 'Cons item balance after',
+    royalties_receiver: receiver,
+    royalties_amount: amount
   );
 }
 

@@ -7,11 +7,6 @@ trait IERC20 {
   fn transfer_from(sender: starknet::ContractAddress, recipient: starknet::ContractAddress, amount: u256) -> bool;
 }
 
-#[abi]
-trait IERC165 {
-  fn supports_interface(interface_id: u32) -> bool;
-}
-
 #[contract]
 mod ERC20 {
   use super::IERC20;
@@ -47,11 +42,6 @@ mod ERC20 {
       _transfer(sender, recipient, amount);
       true
     }
-  }
-
-  #[view]
-  fn supports_interface(interface_id: u32) -> bool {
-    false
   }
 
   #[view]

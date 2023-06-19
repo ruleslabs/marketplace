@@ -1,36 +1,12 @@
-// locals
-use marketplace::utils::serde::SpanSerde;
-use marketplace::marketplace::interface::Voucher;
-
-#[abi]
-trait IERC2981 {
-  #[view]
-  fn supports_interface(interface_id: u32) -> bool;
-
-  #[view]
-  fn royalty_info(token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256);
-}
-
-#[abi]
-trait IERC165 {
-  fn supports_interface(interface_id: u32) -> bool;
-}
-
 #[contract]
 mod ERC1155RoyaltiesLazy {
+  use array::{ ArrayTrait, SpanTrait };
+
   // locals
-  use marketplace::utils::serde::SpanSerde;
+  use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, Voucher };
   use super::super::erc1155::ERC1155;
-  use marketplace::royalties::erc2981::IERC2981_ID;
-
-  //
-  // Storage
-  //
-
-  struct Storage {
-    _receiver: starknet::ContractAddress,
-    _amount: u256,
-  }
+  use super::super::erc2981::ERC2981;
+  use marketplace::utils::serde::SpanSerde;
 
   //
   // Constructor
@@ -38,37 +14,28 @@ mod ERC1155RoyaltiesLazy {
 
   #[constructor]
   fn constructor(receiver_: starknet::ContractAddress, amount_: u256) {
-    _receiver::write(receiver_);
-    _amount::write(amount_);
-  }
-
-  //
-  // Interface impl
-  //
-
-  impl ERC2981 of super::IERC2981 {
-    fn supports_interface(interface_id: u32) -> bool {
-      interface_id == IERC2981_ID
-    }
-
-    fn royalty_info(token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256) {
-      let receiver_ = _receiver::read();
-      let amount_ = _amount::read();
-
-      (receiver_, amount_)
-    }
+    ERC2981::constructor(:receiver_, :amount_);
   }
 
   // ERC2981
 
   #[view]
-  fn supports_interface(interface_id: u32) -> bool {
-    ERC1155::supports_interface(:interface_id) | ERC2981::supports_interface(:interface_id)
-  }
-
-  #[view]
   fn royalty_info(token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256) {
     ERC2981::royalty_info(:token_id, :sale_price)
+  }
+
+  // LAZY
+
+  #[external]
+  fn redeem_voucher_to(to: starknet::ContractAddress, voucher: Voucher, signature: Span<felt252>) {
+    ERC1155LazyExtension::redeem_voucher_to(:to, :voucher, :signature);
+  }
+
+  // ERC165
+
+  #[view]
+  fn supports_interface(interface_id: u32) -> bool {
+    ERC1155::supports_interface(:interface_id) | ERC2981::supports_interface(:interface_id)
   }
 
   // ERC1155
