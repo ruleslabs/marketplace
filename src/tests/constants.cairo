@@ -216,3 +216,13 @@ fn ERC1155_VOUCHER_SIGNATURE() -> Span<felt252> {
 
   signature.span()
 }
+
+// ROYALTIES
+
+fn ROYALTIES_RECEIVER() -> starknet::ContractAddress {
+  starknet::contract_address_const::<'royalties receiver'>()
+}
+
+fn ROYALTIES_AMOUNT() -> u256 {
+  0x42
+}

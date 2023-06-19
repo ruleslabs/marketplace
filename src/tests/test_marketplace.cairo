@@ -26,12 +26,15 @@ use super::constants::{
   ERC1155_ERC20_ORDER_SIGNATURE,
   ERC1155_VOUCHER,
   ERC1155_VOUCHER_SIGNATURE,
+  ROYALTIES_RECEIVER,
+  ROYALTIES_AMOUNT,
 };
 use super::utils;
 use super::mocks::signer::Signer;
 use super::mocks::erc20::{ ERC20, IERC20Dispatcher, IERC20DispatcherTrait };
 use super::mocks::erc1155::{ ERC1155, IERC1155Dispatcher, IERC1155DispatcherTrait };
 use super::mocks::lazy_minter::LazyMinter;
+use super::mocks::erc1155_2981::ERC1155_2981;
 
 // dispatchers
 use rules_account::account::{ AccountABIDispatcher, AccountABIDispatcherTrait };
@@ -109,6 +112,29 @@ fn deploy_lazy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatch
   );
 
   lazy_erc1155
+}
+
+fn deploy_erc1155_2981(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
+  let mut calldata = ArrayTrait::<felt252>::new();
+
+  let royalties_receiver = ROYALTIES_RECEIVER();
+  let royalties_amount = ROYALTIES_AMOUNT();
+
+  calldata.append(royalties_receiver.into());
+  calldata.append(royalties_amount.low.into());
+  calldata.append(royalties_amount.high.into());
+
+  let address = utils::deploy(ERC1155_2981::TEST_CLASS_HASH, :calldata);
+  let erc1155_2981 = IERC1155Dispatcher { contract_address: address };
+
+  erc1155_2981.mint(
+    to: recipient,
+    id: ERC1155_IDENTIFIER(),
+    amount: ERC1155_AMOUNT(),
+    data: ArrayTrait::<felt252>::new().span()
+  );
+
+  erc1155_2981
 }
 
 // Upgrade
@@ -588,6 +614,64 @@ fn test_redeem_voucher_and_fulfill_order_erc1155_erc20_cancelled() {
   Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
 }
 
+// ERC20 - ERC1155_2981
+
+#[test]
+#[available_gas(20000000)]
+fn test_fulfill_order_erc20_erc1155_with_royalties() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let erc20 = deploy_erc20(recipient: offerer.contract_address, initial_supply: ERC20_AMOUNT());
+  let erc1155_2981 = deploy_erc1155_2981(recipient: offeree.contract_address);
+
+  let order = ERC20_ERC1155_ORDER();
+  let signature = ERC20_ERC1155_ORDER_SIGNATURE();
+
+  let royalties_receiver = ROYALTIES_RECEIVER();
+  let royalties_amount = ROYALTIES_AMOUNT();
+
+  assert_state_before_order(:order);
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+
+  assert_state_after_order_with_royalties(:order, receiver: royalties_receiver, amount: royalties_amount);
+}
+
+// ERC1155_2981 - ERC20
+
+#[test]
+#[available_gas(20000000)]
+fn test_fulfill_order_erc1155_erc20_with_royalties() {
+  setup();
+
+  let offerer = deploy_offerer();
+  let offeree = deploy_offeree();
+
+  let erc1155_2981 = deploy_erc1155_2981(recipient: offerer.contract_address);
+  let erc20 = deploy_erc20(recipient: offeree.contract_address, initial_supply: ERC20_AMOUNT());
+
+  let order = ERC1155_ERC20_ORDER();
+  let signature = ERC1155_ERC20_ORDER_SIGNATURE();
+
+  let royalties_receiver = ROYALTIES_RECEIVER();
+  let royalties_amount = ROYALTIES_AMOUNT();
+
+  assert_state_before_order(:order);
+
+  testing::set_caller_address(offeree.contract_address);
+  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+
+  assert_state_after_order_with_royalties(:order, receiver: royalties_receiver, amount: royalties_amount);
+}
+
+// Lazy ERC1155_2981 - ERC20
+
+// TODO
+
 //
 // Helpers
 //
@@ -652,12 +736,56 @@ fn assert_state_after_voucher_and_order(voucher: Voucher, order: Order) {
   );
 }
 
+fn assert_state_after_order_with_royalties(order: Order, receiver: starknet::ContractAddress, amount: u256) {
+  let offerer = OFFERER_DEPLOYED_ADDRESS();
+  let offeree = OFFEREE_DEPLOYED_ADDRESS();
+
+  assert_item_balance_with_royalties(
+    item: order.offer_item,
+    owner: offeree,
+    other: offerer,
+    other_balance: 0.into(),
+    error: 'Offer item balance after',
+    royalties_receiver: receiver,
+    royalties_amount: amount
+  );
+  assert_item_balance_with_royalties(
+    item: order.consideration_item,
+    owner: offerer,
+    other: offeree,
+    other_balance: 0.into(),
+    error: 'Cons item balance after',
+    royalties_receiver: receiver,
+    royalties_amount: amount
+  );
+}
+
 fn assert_item_balance(
   item: Item,
   owner: starknet::ContractAddress,
   other: starknet::ContractAddress,
   other_balance: u256,
-  error: felt252
+  error: felt252,
+) {
+  assert_item_balance_with_royalties(
+    :item,
+    :owner,
+    :other,
+    :other_balance,
+    :error,
+    royalties_receiver: starknet::contract_address_const::<0>(),
+    royalties_amount: 0
+  )
+}
+
+fn assert_item_balance_with_royalties(
+  item: Item,
+  owner: starknet::ContractAddress,
+  other: starknet::ContractAddress,
+  other_balance: u256,
+  error: felt252,
+  royalties_receiver: starknet::ContractAddress,
+  royalties_amount: u256
 ) {
   match item {
     Item::Native(()) => { panic_with_felt252('Unsupported item type'); },
@@ -665,8 +793,10 @@ fn assert_item_balance(
     Item::ERC20(erc20_item) => {
       let erc20 = IERC20Dispatcher { contract_address: erc20_item.token };
 
-      assert(erc20.balance_of(owner) == erc20_item.amount, error);
+      assert(erc20.balance_of(owner) == erc20_item.amount - royalties_amount, error);
       assert(erc20.balance_of(other) == other_balance, error);
+
+      assert(erc20.balance_of(royalties_receiver) == royalties_amount, 'Invalid royalties amount')
     },
 
     Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
