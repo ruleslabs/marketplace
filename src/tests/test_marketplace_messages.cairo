@@ -56,7 +56,7 @@ fn test_consume_valid_order_from_valid() {
   let signature = ORDER_SIGNATURE_1();
 
   assert(
-    MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature) == hash,
+    MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature) == hash,
     'Invalid order hash'
   );
 }
@@ -73,7 +73,7 @@ fn test_consume_valid_order_from_invalid() {
   order.salt += 1;
   let signature = ORDER_SIGNATURE_1();
 
-  MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature);
+  MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature);
 }
 
 #[test]
@@ -89,10 +89,10 @@ fn test_consume_valid_order_from_already_consumed() {
   let signature = ORDER_SIGNATURE_1();
 
   assert(
-    MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature) == hash,
+    MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature) == hash,
     'Invalid order hash'
   );
-  MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature);
+  MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature);
 }
 
 #[test]
@@ -108,7 +108,7 @@ fn test_consume_valid_order_from_ended() {
   let order = ORDER_1();
   let signature = ORDER_SIGNATURE_1();
 
-  MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature);
+  MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature);
 }
 
 #[test]
@@ -123,5 +123,20 @@ fn test_consume_valid_order_from_never_ending() {
   let order = ORDER_NEVER_ENDING_1();
   let signature = ORDER_NEVER_ENDING_SIGNATURE_1();
 
-  MarketplaceMessages::consume_valid_order_from(from: signer.contract_address, :order, :signature);
+  MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature, );
 }
+
+// #[test]
+// #[available_gas(20000000)]
+// fn test_consume_valid_order_from_undeployed() {
+//   setup();
+
+//   let signer = setup_signer(ORDER_SIGNER_PUBLIC_KEY());
+
+//   testing::set_block_timestamp(1);
+
+//   let order = ORDER_NEVER_ENDING_1();
+//   let signature = ORDER_NEVER_ENDING_SIGNATURE_1();
+
+//   MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature, );
+// }

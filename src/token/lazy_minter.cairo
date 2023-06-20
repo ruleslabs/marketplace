@@ -1,5 +1,5 @@
 // locals
-use marketplace::utils::serde::SpanSerde;
+use rules_utils::utils::serde::SpanSerde;
 use marketplace::marketplace::interface::Voucher;
 
 #[abi]

@@ -1,6 +1,6 @@
 // locals
 use marketplace::marketplace::interface::Voucher;
-use marketplace::utils::serde::SpanSerde;
+use rules_utils::utils::serde::SpanSerde;
 
 #[abi]
 trait ILazy {

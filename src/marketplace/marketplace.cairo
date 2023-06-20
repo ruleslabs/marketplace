@@ -1,10 +1,9 @@
 use array::SpanTrait;
 use zeroable::Zeroable;
-use rules_erc1155::utils::serde::SpanSerde;
+use rules_utils::utils::serde::SpanSerde;
 
 // locals
-use super::order::Order;
-use super::interface::Voucher;
+use super::interface::{ Voucher, DeploymentData, Order };
 
 #[abi]
 trait MarketplaceABI {
@@ -15,11 +14,12 @@ trait MarketplaceABI {
   fn cancel_order(order: Order, signature: Span<felt252>);
 
   #[external]
-  fn redeem_voucher_and_fulfill_order(
+  fn fulfill_order_with_voucher(
     voucher: Voucher,
     voucher_signature: Span<felt252>,
     order: Order,
-    order_signature: Span<felt252>
+    order_signature: Span<felt252>,
+    offerer_deployment_data: DeploymentData,
   );
 }
 
@@ -30,10 +30,10 @@ mod Marketplace {
 
   // locals
   use marketplace::access::ownable::Ownable;
-  use marketplace::utils::zeroable::U256Zeroable;
+  use rules_utils::utils::zeroable::U256Zeroable;
   use super::super::interface::IMarketplace;
   use super::super::messages::MarketplaceMessages;
-  use super::{ Order, Voucher };
+  use super::{ Order, Voucher, DeploymentData };
   use super::super::order::Item;
 
   // dispatchers
@@ -79,7 +79,7 @@ mod Marketplace {
 
   impl Marketplace of IMarketplace {
     fn fulfill_order(offerer: starknet::ContractAddress, order: Order, signature: Span<felt252>) {
-      let hash = MarketplaceMessages::consume_valid_order_from(from: offerer, :order, :signature);
+      let hash = MarketplaceMessages::consume_valid_order_from_deployed(from: offerer, :order, :signature);
 
       // get potential royalties info
       let (royalties_receiver, royalties_amount) = _royalty_info(
@@ -120,7 +120,7 @@ mod Marketplace {
     fn cancel_order(order: Order, signature: Span<felt252>) {
       let caller = starknet::get_caller_address();
 
-      let hash = MarketplaceMessages::consume_valid_order_from(from: caller, :order, :signature);
+      let hash = MarketplaceMessages::consume_valid_order_from_deployed(from: caller, :order, :signature);
 
       // Events
       CancelOrder(
@@ -131,14 +131,22 @@ mod Marketplace {
       );
     }
 
-    fn redeem_voucher_and_fulfill_order(
+    fn fulfill_order_with_voucher(
       voucher: Voucher,
       voucher_signature: Span<felt252>,
       order: Order,
-      order_signature: Span<felt252>
+      order_signature: Span<felt252>,
+      offerer_deployment_data: DeploymentData,
     ) {
+      let mut hash = 0;
       let offerer = voucher.receiver;
-      let hash = MarketplaceMessages::consume_valid_order_from(from: offerer, :order, signature: order_signature);
+
+      hash = MarketplaceMessages::consume_valid_order_from(
+        from: offerer,
+        deployment_data: offerer_deployment_data,
+        :order,
+        signature: order_signature
+      );
 
       // assert voucher and order offer item match
       match order.offer_item {
@@ -236,13 +244,20 @@ mod Marketplace {
   }
 
   #[external]
-  fn redeem_voucher_and_fulfill_order(
+  fn fulfill_order_with_voucher(
     voucher: Voucher,
     voucher_signature: Span<felt252>,
     order: Order,
-    order_signature: Span<felt252>
+    order_signature: Span<felt252>,
+    offerer_deployment_data: DeploymentData,
   ) {
-    Marketplace::redeem_voucher_and_fulfill_order(:voucher, :voucher_signature, :order, :order_signature);
+    Marketplace::fulfill_order_with_voucher(
+      :voucher,
+      :voucher_signature,
+      :order,
+      :order_signature,
+      :offerer_deployment_data
+    );
   }
 
   //

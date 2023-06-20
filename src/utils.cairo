@@ -1,2 +1,2 @@
-mod serde;
 mod zeroable;
+mod partial_eq;

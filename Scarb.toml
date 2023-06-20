@@ -10,6 +10,7 @@ name = "marketplace"
 [dependencies]
 rules_account = { git = "https://github.com/ruleslabs/starknet-rules-account.git" }
 rules_tokens = { git = "https://github.com/ruleslabs/core.git" }
+rules_utils = { git = "https://github.com/ruleslabs/starknet-utils.git" }
 messages = { git = "https://github.com/ruleslabs/starknet-messages.git" }
 starknet = ">=1.0.0"
 

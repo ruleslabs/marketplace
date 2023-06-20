@@ -1,4 +1,4 @@
-use marketplace::utils::serde::SpanSerde;
+use rules_utils::utils::serde::SpanSerde;
 
 #[abi]
 trait IERC1155 {

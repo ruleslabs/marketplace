@@ -4,7 +4,7 @@ mod ERC1155Lazy {
 
   // locals
   use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, Voucher };
-  use marketplace::utils::serde::SpanSerde;
+  use rules_utils::utils::serde::SpanSerde;
   use super::super::erc1155::ERC1155;
 
   //

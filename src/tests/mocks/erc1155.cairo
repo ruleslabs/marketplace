@@ -1,4 +1,4 @@
-use marketplace::utils::serde::SpanSerde;
+use rules_utils::utils::serde::SpanSerde;
 
 const IERC1155_RECEIVER_ID: u32 = 0x4e2312e0_u32;
 const ON_ERC1155_RECEIVED_SELECTOR: u32 = 0xf23a6e61_u32;
@@ -48,7 +48,7 @@ mod ERC1155 {
   use rules_account::account;
 
   // local
-  use marketplace::utils::serde::SpanSerde;
+  use rules_utils::utils::serde::SpanSerde;
 
   // Dispatchers
   use super::{ IERC1155ReceiverDispatcher, IERC1155ReceiverDispatcherTrait, IERC165Dispatcher, IERC165DispatcherTrait };

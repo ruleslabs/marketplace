@@ -6,7 +6,7 @@ mod ERC1155RoyaltiesLazy {
   use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, Voucher };
   use super::super::erc1155::ERC1155;
   use super::super::erc2981::ERC2981;
-  use marketplace::utils::serde::SpanSerde;
+  use rules_utils::utils::serde::SpanSerde;
 
   //
   // Constructor

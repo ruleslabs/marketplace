@@ -4,3 +4,4 @@ use marketplace::{ Marketplace, MarketplaceABIDispatcher, MarketplaceABIDispatch
 mod messages;
 mod interface;
 mod order;
+mod deployment_data;
