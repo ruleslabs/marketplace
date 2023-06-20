@@ -14,6 +14,10 @@ use super::constants::{
   ORDER_SIGNER_PUBLIC_KEY,
   ORDER_NEVER_ENDING_1,
   ORDER_NEVER_ENDING_SIGNATURE_1,
+  ORDER_UNDELPOYED_SIGNATURE_1,
+  ORDER_SIGNER_DEPLOYMENT_DATA,
+  UNDEPLOYED_ORDER_SIGNER,
+  ORDER_UNDEPLOYED_HASH_1,
 };
 use super::utils;
 use super::mocks::signer::Signer;
@@ -126,17 +130,46 @@ fn test_consume_valid_order_from_never_ending() {
   MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature, );
 }
 
-// #[test]
-// #[available_gas(20000000)]
-// fn test_consume_valid_order_from_undeployed() {
-//   setup();
+#[test]
+#[available_gas(20000000)]
+fn test_consume_valid_order_from_undeployed() {
+  setup();
 
-//   let signer = setup_signer(ORDER_SIGNER_PUBLIC_KEY());
+  let signer = UNDEPLOYED_ORDER_SIGNER();
 
-//   testing::set_block_timestamp(1);
+  let order = ORDER_1();
+  let hash = ORDER_UNDEPLOYED_HASH_1();
+  let signature = ORDER_UNDELPOYED_SIGNATURE_1();
+  let offerer_deployment_data = ORDER_SIGNER_DEPLOYMENT_DATA();
 
-//   let order = ORDER_NEVER_ENDING_1();
-//   let signature = ORDER_NEVER_ENDING_SIGNATURE_1();
+  assert(
+    MarketplaceMessages::consume_valid_order_from(
+      from: signer,
+      deployment_data: offerer_deployment_data,
+      :order,
+      :signature
+    ) == hash,
+    'Invalid order hash'
+  );
+}
 
-//   MarketplaceMessages::consume_valid_order_from_deployed(from: signer.contract_address, :order, :signature, );
-// }
+#[test]
+#[available_gas(20000000)]
+#[should_panic(expected: ('Invalid deployment data',))]
+fn test_consume_valid_order_from_undeployed_invalid() {
+  setup();
+
+  let signer = UNDEPLOYED_ORDER_SIGNER();
+
+  let order = ORDER_1();
+  let signature = ORDER_UNDELPOYED_SIGNATURE_1();
+  let mut offerer_deployment_data = ORDER_SIGNER_DEPLOYMENT_DATA();
+  offerer_deployment_data.public_key += 1;
+
+  MarketplaceMessages::consume_valid_order_from(
+    from: signer,
+    deployment_data: offerer_deployment_data,
+    :order,
+    :signature
+  );
+}

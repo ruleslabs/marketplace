@@ -81,7 +81,7 @@ mod MarketplaceMessages {
         assert(Messages::_is_message_signature_valid(:hash, :signature, signer: from), 'Invalid order signature');
       } else {
         let computed_signer = deployment_data.compute_address();
-        assert(computed_signer == from, 'Invalid, deployment data');
+        assert(computed_signer == from, 'Invalid deployment data');
 
         assert(
           Account::_is_valid_signature(message: hash, :signature, public_key: deployment_data.public_key),

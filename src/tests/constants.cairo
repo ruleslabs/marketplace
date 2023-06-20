@@ -1,8 +1,9 @@
+use core::traits::TryInto;
 use array::{ ArrayTrait, SpanTrait };
 
 // locals
-use marketplace::marketplace::order::{ Order, Item, ERC20_Item, ERC1155_Item };
-use marketplace::marketplace::interface::Voucher;
+use marketplace::marketplace::order::{ Item, ERC20_Item, ERC1155_Item };
+use marketplace::marketplace::interface::{ Order, Voucher, DeploymentData };
 
 fn CHAIN_ID() -> felt252 {
   'SN_MAIN'
@@ -56,6 +57,10 @@ fn ORDER_HASH_1() -> felt252 {
   0x5a13f4842d3a9b909b7427a4e5d69f78112aba6cccda56a026b8efd297c8383
 }
 
+fn ORDER_UNDEPLOYED_HASH_1() -> felt252 {
+  0x27b83ae2990d88e0ee00a23e2b6b16658efff91e06db3fd37e5f20f58a810b4
+}
+
 fn ORDER_SIGNATURE_1() -> Span<felt252> {
   let mut signature = ArrayTrait::new();
 
@@ -74,8 +79,30 @@ fn ORDER_NEVER_ENDING_SIGNATURE_1() -> Span<felt252> {
   signature.span()
 }
 
+fn ORDER_UNDELPOYED_SIGNATURE_1() -> Span<felt252> {
+  let mut signature = ArrayTrait::new();
+
+  signature.append(1548927518611253005404857691742895703601876804835212736986837313600809803889);
+  signature.append(65476808509804352937520388126590917253385821050220087966654434973534130167);
+
+  signature.span()
+}
+
 fn ORDER_SIGNER_PUBLIC_KEY() -> felt252 {
   0x1766831fbcbc258a953dd0c0505ecbcd28086c673355c7a219bc031b710b0d6
+}
+
+fn ORDER_SIGNER_DEPLOYMENT_DATA() -> DeploymentData {
+  DeploymentData {
+    public_key: ORDER_SIGNER_PUBLIC_KEY(),
+    class_hash: starknet::class_hash_const::<'class hash'>(),
+    calldata_hash: 'calldata hash',
+    deployer: starknet::contract_address_const::<'deployer'>(),
+  }
+}
+
+fn UNDEPLOYED_ORDER_SIGNER() -> starknet::ContractAddress {
+  starknet::contract_address_const::<0x58229d189a0d33f44c7da8c985616e20d3ff967e9df4fbd5d97ad9fa01a995e>()
 }
 
 // ADDRESSES
