@@ -5,4 +5,5 @@ mod token;
 mod introspection;
 mod royalties;
 
+#[cfg(test)]
 mod tests;

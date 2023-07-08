@@ -1,9 +1,14 @@
-// locals
-use rules_utils::utils::serde::SpanSerde;
-use marketplace::marketplace::interface::Voucher;
+use array::SpanSerde;
 
-#[abi]
-trait ILazyMinter {
-  #[external]
-  fn redeem_voucher_to(to: starknet::ContractAddress, voucher: Voucher, signature: Span<felt252>);
+// locals
+use rules_marketplace::marketplace::interface::Voucher;
+
+#[starknet::interface]
+trait ILazyMinter<TContractState> {
+  fn redeem_voucher_to(
+    ref self: TContractState,
+    to: starknet::ContractAddress,
+    voucher: Voucher,
+    signature: Span<felt252>
+  );
 }

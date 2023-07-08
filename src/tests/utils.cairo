@@ -1,5 +1,5 @@
 use array::ArrayTrait;
-use core::result::ResultTrait;
+use result::ResultTrait;
 use option::OptionTrait;
 use starknet::class_hash::Felt252TryIntoClassHash;
 use traits::TryInto;

@@ -4,10 +4,16 @@ use option::OptionTrait;
 use starknet::testing;
 
 // locals
-use marketplace::marketplace::Marketplace;
-use marketplace::marketplace::order::{ Item };
-use marketplace::marketplace::interface::{ Order, Voucher, DeploymentData };
-use marketplace::utils::zeroable::DeploymentDataZeroable;
+use rules_marketplace::marketplace::Marketplace;
+use rules_marketplace::marketplace::Marketplace::{
+  ContractState as MarketplaceContractState,
+  IMarketplace,
+  HelperTrait,
+  UpgradeTrait,
+};
+use rules_marketplace::marketplace::order::{ Item };
+use rules_marketplace::marketplace::interface::{ Order, Voucher, DeploymentData };
+use rules_marketplace::utils::zeroable::DeploymentDataZeroable;
 use super::constants::{
   CHAIN_ID,
   BLOCK_TIMESTAMP,
@@ -42,14 +48,18 @@ use rules_account::account::{ AccountABIDispatcher, AccountABIDispatcherTrait };
 
 // SETUP
 
-fn setup() {
+fn setup() -> MarketplaceContractState {
   // setup block timestamp
   testing::set_block_timestamp(BLOCK_TIMESTAMP());
 
   // setup chain id to compute vouchers hashes
   testing::set_chain_id(CHAIN_ID());
 
-  Marketplace::constructor(OWNER());
+  let mut marketplace = Marketplace::unsafe_new_contract_state();
+
+  marketplace.initializer(OWNER());
+
+  marketplace
 }
 
 fn deploy_signer(public_key: felt252) -> AccountABIDispatcher {
@@ -144,20 +154,20 @@ fn deploy_erc1155_royalties_lazy(recipient: starknet::ContractAddress) -> IERC11
 #[available_gas(20000000)]
 #[should_panic(expected: ('Caller is not the owner',))]
 fn test_upgrade_unauthorized() {
-  setup();
+  let mut marketplace = setup();
 
   testing::set_caller_address(OTHER());
-  Marketplace::upgrade(new_implementation: 'new implementation'.try_into().unwrap());
+  marketplace.upgrade(new_implementation: 'new implementation'.try_into().unwrap());
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Caller is the zero address',))]
 fn test_upgrade_from_zero() {
-  setup();
+  let mut marketplace = setup();
 
   testing::set_caller_address(ZERO());
-  Marketplace::upgrade(new_implementation: 'new implementation'.try_into().unwrap());
+  marketplace.upgrade(new_implementation: 'new implementation'.try_into().unwrap());
 }
 
 // Cancel order
@@ -165,7 +175,7 @@ fn test_upgrade_from_zero() {
 #[test]
 #[available_gas(20000000)]
 fn test_cancel_order() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
 
@@ -173,14 +183,14 @@ fn test_cancel_order() {
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
 
   testing::set_caller_address(offerer.contract_address);
-  Marketplace::cancel_order(:order, :signature);
+  marketplace.cancel_order(:order, :signature);
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order already consumed',))]
 fn test_cancel_order_already_canceled() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
 
@@ -188,15 +198,15 @@ fn test_cancel_order_already_canceled() {
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
 
   testing::set_caller_address(offerer.contract_address);
-  Marketplace::cancel_order(:order, :signature);
-  Marketplace::cancel_order(:order, :signature);
+  marketplace.cancel_order(:order, :signature);
+  marketplace.cancel_order(:order, :signature);
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Invalid order signature',))]
 fn test_cancel_order_unauthorized() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -205,7 +215,7 @@ fn test_cancel_order_unauthorized() {
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::cancel_order(:order, :signature);
+  marketplace.cancel_order(:order, :signature);
 }
 
 // ERC20 - ERC1155
@@ -213,7 +223,7 @@ fn test_cancel_order_unauthorized() {
 #[test]
 #[available_gas(20000000)]
 fn test_fulfill_order_erc20_erc1155() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -227,7 +237,7 @@ fn test_fulfill_order_erc20_erc1155() {
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 
   assert_state_after_order(:order);
 }
@@ -236,7 +246,7 @@ fn test_fulfill_order_erc20_erc1155() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order already consumed',))]
 fn test_fulfill_order_erc20_erc1155_already_consumed() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -248,15 +258,15 @@ fn test_fulfill_order_erc20_erc1155_already_consumed() {
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Invalid order signature',))]
 fn test_fulfill_order_erc20_erc1155_invalid_signature() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -269,14 +279,14 @@ fn test_fulfill_order_erc20_erc1155_invalid_signature() {
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order ended',))]
 fn test_fulfill_order_erc20_erc1155_ended() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -289,14 +299,14 @@ fn test_fulfill_order_erc20_erc1155_ended() {
 
   testing::set_block_timestamp(BLOCK_TIMESTAMP() + 1);
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order already consumed',))]
 fn test_fulfill_order_erc20_erc1155_cancelled() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -308,10 +318,10 @@ fn test_fulfill_order_erc20_erc1155_cancelled() {
   let signature = ERC20_ERC1155_ORDER_SIGNATURE();
 
   testing::set_caller_address(offerer.contract_address);
-  Marketplace::cancel_order(:order, :signature);
+  marketplace.cancel_order(:order, :signature);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 // ERC1155 - ERC20
@@ -319,7 +329,7 @@ fn test_fulfill_order_erc20_erc1155_cancelled() {
 #[test]
 #[available_gas(20000000)]
 fn test_fulfill_order_erc1155_erc20() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -333,7 +343,7 @@ fn test_fulfill_order_erc1155_erc20() {
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 
   assert_state_after_order(:order);
 }
@@ -342,7 +352,7 @@ fn test_fulfill_order_erc1155_erc20() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order already consumed',))]
 fn test_fulfill_order_erc1155_erc20_already_consumed() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -356,15 +366,15 @@ fn test_fulfill_order_erc1155_erc20_already_consumed() {
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Invalid order signature',))]
 fn test_fulfill_order_erc1155_erc20_invalid_signature() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -379,14 +389,14 @@ fn test_fulfill_order_erc1155_erc20_invalid_signature() {
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order ended',))]
 fn test_fulfill_order_erc1155_erc20_ended() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -399,14 +409,14 @@ fn test_fulfill_order_erc1155_erc20_ended() {
 
   testing::set_block_timestamp(BLOCK_TIMESTAMP() + 1);
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 #[test]
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order already consumed',))]
 fn test_fulfill_order_erc1155_erc20_cancelled() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -418,10 +428,10 @@ fn test_fulfill_order_erc1155_erc20_cancelled() {
   let signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
   testing::set_caller_address(offerer.contract_address);
-  Marketplace::cancel_order(:order, :signature);
+  marketplace.cancel_order(:order, :signature);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 }
 
 // Lazy ERC1155 - ERC20
@@ -429,7 +439,7 @@ fn test_fulfill_order_erc1155_erc20_cancelled() {
 #[test]
 #[available_gas(20000000)]
 fn test_fulfill_order_with_voucher_erc1155_erc20() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -446,7 +456,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20() {
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
@@ -461,7 +471,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Invalid voucher and order match',))]
 fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_token_id() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -477,7 +487,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_token_id() {
   let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
@@ -490,7 +500,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_token_id() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Invalid voucher and order match',))]
 fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_amount() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -506,7 +516,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_amount() {
   let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
@@ -519,7 +529,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_amount() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Invalid order signature',))]
 fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_recipient() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -535,7 +545,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_recipient() {
   let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
@@ -548,7 +558,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_voucher_recipient() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order already consumed',))]
 fn test_fulfill_order_with_voucher_erc1155_erc20_already_consumed() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -563,14 +573,14 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_already_consumed() {
   let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
     :order_signature,
     offerer_deployment_data: DeploymentDataZeroable::zero()
   );
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
@@ -584,7 +594,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_already_consumed() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Invalid order signature',))]
 fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_signature() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -600,7 +610,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_signature() {
   let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
@@ -613,7 +623,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_invalid_signature() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order ended',))]
 fn test_fulfill_order_with_voucher_erc1155_erc20_ended() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -629,7 +639,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_ended() {
 
   testing::set_block_timestamp(BLOCK_TIMESTAMP() + 1);
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
@@ -642,7 +652,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_ended() {
 #[available_gas(20000000)]
 #[should_panic(expected: ('Order already consumed',))]
 fn test_fulfill_order_with_voucher_erc1155_erc20_cancelled() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -657,10 +667,10 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_cancelled() {
   let order_signature = ERC1155_ERC20_ORDER_SIGNATURE();
 
   testing::set_caller_address(offerer.contract_address);
-  Marketplace::cancel_order(:order, signature: order_signature);
+  marketplace.cancel_order(:order, signature: order_signature);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,
@@ -674,7 +684,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_cancelled() {
 #[test]
 #[available_gas(20000000)]
 fn test_fulfill_order_erc20_erc1155_with_royalties() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -691,7 +701,7 @@ fn test_fulfill_order_erc20_erc1155_with_royalties() {
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 
   assert_state_after_order_with_royalties(:order, receiver: royalties_receiver, amount: royalties_amount);
 }
@@ -701,7 +711,7 @@ fn test_fulfill_order_erc20_erc1155_with_royalties() {
 #[test]
 #[available_gas(20000000)]
 fn test_fulfill_order_erc1155_erc20_with_royalties() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -718,7 +728,7 @@ fn test_fulfill_order_erc1155_erc20_with_royalties() {
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order(offerer: offerer.contract_address, :order, :signature);
+  marketplace.fulfill_order(offerer: offerer.contract_address, :order, :signature);
 
   assert_state_after_order_with_royalties(:order, receiver: royalties_receiver, amount: royalties_amount);
 }
@@ -728,7 +738,7 @@ fn test_fulfill_order_erc1155_erc20_with_royalties() {
 #[test]
 #[available_gas(20000000)]
 fn test_fulfill_order_with_voucher_erc1155_erc20_with_royalties() {
-  setup();
+  let mut marketplace = setup();
 
   let offerer = deploy_offerer();
   let offeree = deploy_offeree();
@@ -748,7 +758,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_with_royalties() {
   assert_state_before_order(:order);
 
   testing::set_caller_address(offeree.contract_address);
-  Marketplace::fulfill_order_with_voucher(
+  marketplace.fulfill_order_with_voucher(
     :voucher,
     :voucher_signature,
     :order,

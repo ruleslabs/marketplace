@@ -1,53 +1,101 @@
-#[contract]
+#[starknet::interface]
+trait IOwnable<TContractState> {
+  fn owner(self: @TContractState) -> starknet::ContractAddress;
+
+  fn transfer_ownership(ref self: TContractState, new_owner: starknet::ContractAddress);
+
+  fn renounce_ownership(ref self: TContractState);
+}
+
+#[starknet::contract]
 mod Ownable {
   use zeroable::Zeroable;
 
+  // locals
+  use rules_tokens::access::ownable;
+
+  //
+  // Storage
+  //
+
+  #[storage]
   struct Storage {
     _owner: starknet::ContractAddress
   }
 
+  //
+  // Events
+  //
+
   #[event]
-  fn OwnershipTransferred(
+  #[derive(Drop, starknet::Event)]
+  enum Event {
+    OwnershipTransferred: OwnershipTransferred,
+  }
+
+  #[derive(Drop, starknet::Event)]
+  struct OwnershipTransferred {
     previous_owner: starknet::ContractAddress,
-    new_owner: starknet::ContractAddress
-  ) {}
-
-  #[internal]
-  fn initializer() {
-    let caller = starknet::get_caller_address();
-    _transfer_ownership(caller);
+    new_owner: starknet::ContractAddress,
   }
 
-  #[internal]
-  fn assert_only_owner() {
-    let owner = _owner::read();
-    let caller = starknet::get_caller_address();
-    assert(!caller.is_zero(), 'Caller is the zero address');
-    assert(caller == owner, 'Caller is not the owner');
+  //
+  // Modifiers
+  //
+
+  #[generate_trait]
+  impl ModifierImpl of ModifierTrait {
+    fn assert_only_owner(self: @ContractState) {
+      let owner = self._owner.read();
+      let caller = starknet::get_caller_address();
+      assert(!caller.is_zero(), 'Caller is the zero address');
+      assert(caller == owner, 'Caller is not the owner');
+    }
   }
 
-  #[internal]
-  fn owner() -> starknet::ContractAddress {
-    _owner::read()
+  //
+  // Ownable impl
+  //
+
+  #[external(v0)]
+  impl IOwnableImpl of ownable::IOwnable<ContractState> {
+    fn owner(self: @ContractState) -> starknet::ContractAddress {
+      self._owner.read()
+    }
+
+    fn transfer_ownership(ref self: ContractState, new_owner: starknet::ContractAddress) {
+      assert(!new_owner.is_zero(), 'New owner is the zero address');
+      self.assert_only_owner();
+      self._transfer_ownership(new_owner);
+    }
+
+    fn renounce_ownership(ref self: ContractState) {
+      self.assert_only_owner();
+      self._transfer_ownership(Zeroable::zero());
+    }
   }
 
-  #[internal]
-  fn transfer_ownership(new_owner: starknet::ContractAddress) {
-    assert(!new_owner.is_zero(), 'New owner is the zero address');
-    assert_only_owner();
-    _transfer_ownership(new_owner);
-  }
+  //
+  // Helpers
+  //
 
-  #[internal]
-  fn renounce_ownership() {
-    assert_only_owner();
-    _transfer_ownership(Zeroable::zero());
-  }
+  #[generate_trait]
+  impl HelperImpl of HelperTrait {
+    fn initializer(ref self: ContractState) {
+      let caller = starknet::get_caller_address();
+      self._transfer_ownership(caller);
+    }
 
-  #[internal]
-  fn _transfer_ownership(new_owner: starknet::ContractAddress) {
-    let previous_owner = _owner::read();
-    _owner::write(new_owner);
-    OwnershipTransferred(previous_owner, new_owner);
+    fn _transfer_ownership(ref self: ContractState, new_owner: starknet::ContractAddress) {
+      let previous_owner = self._owner.read();
+      self._owner.write(new_owner);
+
+      // Events
+      self.emit(
+        Event::OwnershipTransferred(
+          OwnershipTransferred { previous_owner, new_owner }
+        )
+      );
+    }
   }
 }

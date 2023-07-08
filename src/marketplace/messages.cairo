@@ -1,7 +1,5 @@
-use marketplace::marketplace::deployment_data::DeploymentDataTrait;
-use array::SpanTrait;
-use zeroable::Zeroable;
-use rules_utils::utils::serde::SpanSerde;
+use rules_account::account::account::Account::HelperTrait;
+use array::SpanSerde;
 use messages::typed_data::typed_data::Domain;
 
 // locals
@@ -14,13 +12,17 @@ fn DOMAIN() -> Domain {
   }
 }
 
-#[abi]
-trait MarketplaceMessagesABI {
-  #[external]
-  fn consume_valid_order_from_deployed(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) -> felt252;
+#[starknet::interface]
+trait MarketplaceMessagesABI<TContractState> {
+  fn consume_valid_order_from_deployed(
+    ref self: TContractState,
+    from: starknet::ContractAddress,
+    order: Order,
+    signature: Span<felt252>
+  ) -> felt252;
 
-  #[external]
   fn consume_valid_order_from(
+    ref self: TContractState,
     from: starknet::ContractAddress,
     deployment_data: DeploymentData,
     order: Order,
@@ -28,63 +30,89 @@ trait MarketplaceMessagesABI {
   ) -> felt252;
 }
 
-#[contract]
+#[starknet::contract]
 mod MarketplaceMessages {
-  use array::{ ArrayTrait, SpanTrait };
+  use array::{ ArrayTrait, SpanTrait, SpanSerde };
   use zeroable::Zeroable;
+  use integer::U64Zeroable;
   use messages::messages::Messages;
   use messages::typed_data::TypedDataTrait;
   use rules_account::account::Account;
-  use rules_utils::utils::zeroable::U64Zeroable;
 
   // locals
+  use rules_marketplace::marketplace;
   use super::{ DOMAIN, Order, DeploymentData };
   use super::super::deployment_data::DeploymentDataTrait;
-  use rules_utils::utils::serde::SpanSerde;
-  use marketplace::utils::zeroable::{ DeploymentDataZeroable };
+  use rules_marketplace::utils::zeroable::{ DeploymentDataZeroable };
   use super::super::interface::{ IMarketplaceMessages };
 
   // dispatchers
   use rules_account::account::{ AccountABIDispatcher, AccountABIDispatcherTrait };
 
   //
+  // Storage
+  //
+
+  #[storage]
+  struct Storage { }
+
+  //
   // Constructor
   //
 
   #[constructor]
-  fn constructor() {}
+  fn constructor(ref self: ContractState) { }
 
   //
   // impls
   //
 
-  impl MarketplaceMessages of IMarketplaceMessages {
-    fn consume_valid_order_from_deployed(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) -> felt252 {
-      consume_valid_order_from(:from, deployment_data: DeploymentDataZeroable::zero(), :order, :signature)
+  #[external(v0)]
+  impl IMarketplaceMessagesImpl of marketplace::interface::IMarketplaceMessages<ContractState> {
+    fn consume_valid_order_from_deployed(
+      ref self: ContractState,
+      from: starknet::ContractAddress,
+      order: Order,
+      signature: Span<felt252>
+    ) -> felt252 {
+      self.consume_valid_order_from(:from, deployment_data: DeploymentDataZeroable::zero(), :order, :signature)
     }
 
     fn consume_valid_order_from(
+      ref self: ContractState,
       from: starknet::ContractAddress,
       deployment_data: DeploymentData,
       order: Order,
       signature: Span<felt252>
     ) -> felt252 {
+      let mut messages_self = Messages::unsafe_new_contract_state();
+
       // compute voucher message hash
       let hash = order.compute_hash_from(:from, domain: DOMAIN());
 
       // assert order has not been already consumed and consume it
-      assert(!Messages::_is_message_consumed(:hash), 'Order already consumed');
-      Messages::_consume_message(:hash);
+      assert(!Messages::HelperImpl::_is_message_consumed(self: @messages_self, :hash), 'Order already consumed');
+      Messages::HelperImpl::_consume_message(ref self: messages_self, :hash);
 
       // assert order signature is valid
       if (deployment_data.is_zero()) {
-        assert(Messages::_is_message_signature_valid(:hash, :signature, signer: from), 'Invalid order signature');
+        assert(
+          Messages::HelperImpl::_is_message_signature_valid(self: @messages_self, :hash, :signature, signer: from),
+          'Invalid order signature'
+        );
       } else {
+        let account_self = Account::unsafe_new_contract_state();
+
         let computed_signer = deployment_data.compute_address();
         assert(computed_signer == from, 'Invalid deployment data');
 
         assert(
-          Account::_is_valid_signature(message: hash, :signature, public_key: deployment_data.public_key),
+          Account::HelperImpl::_is_valid_signature(
+            self: @account_self,
+            message: hash,
+            :signature,
+            public_key: deployment_data.public_key
+          ),
           'Invalid order signature'
         );
       }
@@ -98,22 +126,5 @@ mod MarketplaceMessages {
 
       hash
     }
-  }
-
-  // Order
-
-  #[external]
-  fn consume_valid_order_from_deployed(from: starknet::ContractAddress, order: Order, signature: Span<felt252>) -> felt252 {
-    MarketplaceMessages::consume_valid_order_from_deployed(:from, :order, :signature)
-  }
-
-  #[externak]
-  fn consume_valid_order_from(
-    from: starknet::ContractAddress,
-    deployment_data: DeploymentData,
-    order: Order,
-    signature: Span<felt252>
-  ) -> felt252 {
-    MarketplaceMessages::consume_valid_order_from(:from, :deployment_data, :order, :signature)
   }
 }

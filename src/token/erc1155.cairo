@@ -1,9 +1,9 @@
-use rules_utils::utils::serde::SpanSerde;
+use array::SpanSerde;
 
-#[abi]
-trait IERC1155 {
-  #[external]
+#[starknet::interface]
+trait IERC1155<TContractState> {
   fn safe_transfer_from(
+    ref self: TContractState,
     from: starknet::ContractAddress,
     to: starknet::ContractAddress,
     id: u256,

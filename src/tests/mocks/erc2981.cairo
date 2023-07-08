@@ -1,21 +1,18 @@
-#[abi]
-trait IERC2981 {
-  #[view]
-  fn supports_interface(interface_id: u32) -> bool;
-
-  #[view]
-  fn royalty_info(token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256);
+#[starknet::interface]
+trait IERC2981<TContractState> {
+  fn royalty_info(self: @TContractState, token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256);
 }
 
-#[contract]
+#[starknet::contract]
 mod ERC2981 {
   // locals
-  use marketplace::royalties::erc2981::IERC2981_ID;
+  use rules_marketplace::royalties::erc2981::IERC2981_ID;
 
   //
   // Storage
   //
 
+  #[storage]
   struct Storage {
     _receiver: starknet::ContractAddress,
     _amount: u256,
@@ -26,35 +23,39 @@ mod ERC2981 {
   //
 
   #[constructor]
-  fn constructor(receiver_: starknet::ContractAddress, amount_: u256) {
-    _receiver::write(receiver_);
-    _amount::write(amount_);
+  fn constructor(ref self: ContractState, receiver_: starknet::ContractAddress, amount_: u256) {
+    self.initializer(:receiver_, :amount_);
   }
 
   //
-  // Interface impl
+  // ERC2981 impl
   //
 
-  impl ERC2981 of super::IERC2981 {
-    fn supports_interface(interface_id: u32) -> bool {
-      interface_id == IERC2981_ID
-    }
-
-    fn royalty_info(token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256) {
-      let receiver_ = _receiver::read();
-      let amount_ = _amount::read();
+  impl IERC2981Impl of super::IERC2981<ContractState> {
+    fn royalty_info(self: @ContractState, token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256) {
+      let receiver_ = self._receiver.read();
+      let amount_ = self._amount.read();
 
       (receiver_, amount_)
     }
   }
 
-  #[view]
-  fn supports_interface(interface_id: u32) -> bool {
-    ERC2981::supports_interface(:interface_id)
+  // ERC165
+
+  #[external(v0)]
+  fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+    interface_id == IERC2981_ID
   }
 
-  #[view]
-  fn royalty_info(token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256) {
-    ERC2981::royalty_info(:token_id, :sale_price)
+  //
+  // Helper impl
+  //
+
+  #[generate_trait]
+  impl HelperImpl of HelperTrait {
+    fn initializer(ref self: ContractState, receiver_: starknet::ContractAddress, amount_: u256) {
+      self._receiver.write(receiver_);
+      self._amount.write(amount_);
+    }
   }
 }

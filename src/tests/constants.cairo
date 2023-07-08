@@ -1,9 +1,9 @@
-use core::traits::TryInto;
+use traits::TryInto;
 use array::{ ArrayTrait, SpanTrait };
 
 // locals
-use marketplace::marketplace::order::{ Item, ERC20_Item, ERC1155_Item };
-use marketplace::marketplace::interface::{ Order, Voucher, DeploymentData };
+use rules_marketplace::marketplace::order::{ Item, ERC20_Item, ERC1155_Item };
+use rules_marketplace::marketplace::interface::{ Order, Voucher, DeploymentData };
 
 fn CHAIN_ID() -> felt252 {
   'SN_MAIN'

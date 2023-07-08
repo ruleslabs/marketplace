@@ -1,7 +1,7 @@
 use zeroable::Zeroable;
 
 // locals
-use marketplace::marketplace::interface::DeploymentData;
+use rules_marketplace::marketplace::interface::DeploymentData;
 use super::partial_eq::DeploymentDataEq;
 
 impl DeploymentDataZeroable of Zeroable<DeploymentData> {

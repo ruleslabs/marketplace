@@ -12,10 +12,7 @@ struct DeploymentData {
   deployer: starknet::ContractAddress,
 }
 
-trait DeploymentDataTrait {
-  fn compute_address(self: @DeploymentData) -> starknet::ContractAddress;
-}
-
+#[generate_trait]
 impl DeploymentDataImpl of DeploymentDataTrait {
   fn compute_address(self: @DeploymentData) -> starknet::ContractAddress {
     let mut address = pedersen(0, CONTRACT_ADDRESS_PREFIX);

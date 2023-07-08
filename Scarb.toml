@@ -1,9 +1,9 @@
 [package]
-name = "marketplace"
+name = "rules_marketplace"
 version = "0.1.0"
 
 [lib]
-name = "marketplace"
+name = "rules_marketplace"
 
 # See more keys and their definitions at https://docs.swmansion.com/scarb/docs/reference/manifest
 
@@ -12,7 +12,7 @@ rules_account = { git = "https://github.com/ruleslabs/starknet-rules-account.git
 rules_tokens = { git = "https://github.com/ruleslabs/core.git" }
 rules_utils = { git = "https://github.com/ruleslabs/starknet-utils.git" }
 messages = { git = "https://github.com/ruleslabs/starknet-messages.git" }
-starknet = ">=1.0.0"
+starknet = "2.0.0-rc3"
 
 [[target.starknet-contract]]
 # Enable Sierra codegen.

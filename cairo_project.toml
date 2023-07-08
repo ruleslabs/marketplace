@@ -1,2 +1,2 @@
 [crate_roots]
-marketplace = "src"
+rules_marketplace = "src"
