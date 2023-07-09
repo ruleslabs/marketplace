@@ -12,7 +12,7 @@ mod Ownable {
   use zeroable::Zeroable;
 
   // locals
-  use rules_tokens::access::ownable;
+  use rules_marketplace::access::ownable;
 
   //
   // Storage

@@ -37,7 +37,11 @@ mod Marketplace {
   use rules_marketplace::marketplace::messages::MarketplaceMessages;
 
   use rules_marketplace::access::ownable;
-  use rules_marketplace::access::ownable::Ownable;
+  use rules_marketplace::access::ownable::{ Ownable, IOwnable };
+  use rules_marketplace::access::ownable::Ownable::{
+    ModifierTrait as OwnableModifierTrait,
+    HelperTrait as OwnableHelperTrait,
+  };
 
   use rules_marketplace::marketplace::order::Item;
 
@@ -92,7 +96,7 @@ mod Marketplace {
     fn _only_owner(self: @ContractState) {
       let ownable_self = Ownable::unsafe_new_contract_state();
 
-      Ownable::ModifierImpl::assert_only_owner(self: @ownable_self);
+      ownable_self.assert_only_owner();
     }
   }
 
@@ -139,12 +143,7 @@ mod Marketplace {
     ) {
       let mut marketplace_messages_self = MarketplaceMessages::unsafe_new_contract_state();
 
-      let hash = MarketplaceMessages::IMarketplaceMessages::consume_valid_order_from_deployed(
-        ref self: marketplace_messages_self,
-        from: offerer,
-        :order,
-        :signature
-      );
+      let hash = marketplace_messages_self.consume_valid_order_from_deployed(from: offerer, :order, :signature);
 
       // get potential royalties info
       let (royalties_receiver, royalties_amount) = self._royalty_info(
@@ -191,12 +190,7 @@ mod Marketplace {
 
       let caller = starknet::get_caller_address();
 
-      let hash = MarketplaceMessages::IMarketplaceMessages::consume_valid_order_from_deployed(
-        ref self: marketplace_messages_self,
-        from: caller,
-        :order,
-        :signature
-      );
+      let hash = marketplace_messages_self.consume_valid_order_from_deployed(from: caller, :order, :signature);
 
       // Events
       self.emit(
@@ -224,8 +218,7 @@ mod Marketplace {
       let mut hash = 0;
       let offerer = voucher.receiver;
 
-      hash = MarketplaceMessages::IMarketplaceMessagesImpl::consume_valid_order_from(
-        ref self: marketplace_messages_self,
+      hash = marketplace_messages_self.consume_valid_order_from(
         from: offerer,
         deployment_data: offerer_deployment_data,
         :order,
@@ -293,19 +286,19 @@ mod Marketplace {
     fn owner(self: @ContractState) -> starknet::ContractAddress {
       let ownable_self = Ownable::unsafe_new_contract_state();
 
-      Ownable::IOwnableImpl::owner(self: @ownable_self)
+      ownable_self.owner()
     }
 
     fn transfer_ownership(ref self: ContractState, new_owner: starknet::ContractAddress) {
       let mut ownable_self = Ownable::unsafe_new_contract_state();
 
-      Ownable::IOwnableImpl::transfer_ownership(ref self: ownable_self, :new_owner);
+      ownable_self.transfer_ownership(:new_owner);
     }
 
     fn renounce_ownership(ref self: ContractState) {
       let mut ownable_self = Ownable::unsafe_new_contract_state();
 
-      Ownable::IOwnableImpl::renounce_ownership(ref self: ownable_self);
+      ownable_self.renounce_ownership();
     }
   }
 
@@ -321,7 +314,7 @@ mod Marketplace {
     fn initializer(ref self: ContractState, owner_: starknet::ContractAddress) {
       let mut ownable_self = Ownable::unsafe_new_contract_state();
 
-      Ownable::HelperImpl::_transfer_ownership(ref self: ownable_self, new_owner: owner_);
+      ownable_self._transfer_ownership(new_owner: owner_);
     }
 
     // Royalties

@@ -36,8 +36,10 @@ mod MarketplaceMessages {
   use zeroable::Zeroable;
   use integer::U64Zeroable;
   use messages::messages::Messages;
+  use messages::messages::Messages::{ HelperTrait as MessagesHelperTrait };
   use messages::typed_data::TypedDataTrait;
   use rules_account::account::Account;
+  use rules_account::account::Account::{ HelperTrait as AccountHelperTrait };
 
   // locals
   use rules_marketplace::marketplace;
@@ -91,13 +93,13 @@ mod MarketplaceMessages {
       let hash = order.compute_hash_from(:from, domain: DOMAIN());
 
       // assert order has not been already consumed and consume it
-      assert(!Messages::HelperImpl::_is_message_consumed(self: @messages_self, :hash), 'Order already consumed');
-      Messages::HelperImpl::_consume_message(ref self: messages_self, :hash);
+      assert(!messages_self._is_message_consumed(:hash), 'Order already consumed');
+      messages_self._consume_message(:hash);
 
       // assert order signature is valid
       if (deployment_data.is_zero()) {
         assert(
-          Messages::HelperImpl::_is_message_signature_valid(self: @messages_self, :hash, :signature, signer: from),
+          messages_self._is_message_signature_valid(:hash, :signature, signer: from),
           'Invalid order signature'
         );
       } else {
@@ -107,12 +109,7 @@ mod MarketplaceMessages {
         assert(computed_signer == from, 'Invalid deployment data');
 
         assert(
-          Account::HelperImpl::_is_valid_signature(
-            self: @account_self,
-            message: hash,
-            :signature,
-            public_key: deployment_data.public_key
-          ),
+          account_self._is_valid_signature(message: hash, :signature, public_key: deployment_data.public_key),
           'Invalid order signature'
         );
       }

@@ -31,11 +31,6 @@ trait IERC1155Receiver<TContractState> {
   ) -> u32;
 }
 
-#[starknet::interface]
-trait IERC165<TContractState> {
-  fn supports_interface(self: @TContractState, interface_id: u32) -> bool;
-}
-
 #[starknet::contract]
 mod ERC1155 {
   use array::{ Span, ArrayTrait, SpanTrait, ArrayDrop, SpanSerde };
@@ -46,8 +41,11 @@ mod ERC1155 {
   use rules_account::account;
 
   // locals
+  use rules_marketplace::introspection::erc165::{ IERC165 };
+
   // Dispatchers
-  use super::{ IERC1155ReceiverDispatcher, IERC1155ReceiverDispatcherTrait, IERC165Dispatcher, IERC165DispatcherTrait };
+  use rules_marketplace::introspection::erc165::{ IERC165Dispatcher, IERC165DispatcherTrait };
+  use super::{ IERC1155ReceiverDispatcher, IERC1155ReceiverDispatcherTrait };
 
   //
   // Storage
@@ -94,10 +92,17 @@ mod ERC1155 {
     }
   }
 
+  //
+  // ERC165 impl
+  //
+
   #[external(v0)]
-  fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
-    false
+  impl IERC165Impl of IERC165<ContractState> {
+    fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+      false
+    }
   }
+
 
   //
   // Helpers

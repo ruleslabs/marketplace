@@ -7,6 +7,7 @@ trait IERC2981<TContractState> {
 mod ERC2981 {
   // locals
   use rules_marketplace::royalties::erc2981::IERC2981_ID;
+  use rules_marketplace::introspection::erc165::{ IERC165 };
 
   //
   // Storage
@@ -40,11 +41,15 @@ mod ERC2981 {
     }
   }
 
-  // ERC165
+  //
+  // ERC165 impl
+  //
 
   #[external(v0)]
-  fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
-    interface_id == IERC2981_ID
+  impl IERC165Impl of IERC165<ContractState> {
+    fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+      interface_id == IERC2981_ID
+    }
   }
 
   //

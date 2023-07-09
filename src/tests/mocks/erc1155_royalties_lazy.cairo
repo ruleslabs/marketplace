@@ -3,9 +3,11 @@ mod ERC1155RoyaltiesLazy {
   use array::{ ArrayTrait, SpanTrait, SpanSerde };
 
   // locals
-  use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, Voucher };
-  use super::super::erc1155::ERC1155;
-  use super::super::erc2981::ERC2981;
+  use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, ILazy, Voucher };
+  use super::super::erc1155::{ ERC1155, IERC1155 };
+  use super::super::erc2981::{ ERC2981, IERC2981 };
+  use super::super::erc2981::ERC2981::{ HelperTrait as ERC2981HelperTrait };
+  use rules_marketplace::introspection::erc165::{ IERC165 };
 
   //
   // Storage
@@ -22,7 +24,7 @@ mod ERC1155RoyaltiesLazy {
   fn constructor(ref self: ContractState, receiver_: starknet::ContractAddress, amount_: u256) {
     let mut erc2981_self = ERC2981::unsafe_new_contract_state();
 
-    ERC2981::HelperImpl::initializer(ref self: erc2981_self, :receiver_, :amount_);
+    erc2981_self.initializer(:receiver_, :amount_);
   }
 
   // ERC2981
@@ -31,7 +33,7 @@ mod ERC1155RoyaltiesLazy {
   fn royalty_info(self: @ContractState, token_id: u256, sale_price: u256) -> (starknet::ContractAddress, u256) {
     let erc2981_self = ERC2981::unsafe_new_contract_state();
 
-    ERC2981::IERC2981Impl::royalty_info(self: @erc2981_self, :token_id, :sale_price)
+    erc2981_self.royalty_info(:token_id, :sale_price)
   }
 
   // LAZY
@@ -45,12 +47,7 @@ mod ERC1155RoyaltiesLazy {
   ) {
     let mut erc1155_lazy_extension_self = ERC1155LazyExtension::unsafe_new_contract_state();
 
-    ERC1155LazyExtension::ILazyImpl::redeem_voucher_to(
-      ref self: erc1155_lazy_extension_self,
-      :to,
-      :voucher,
-      :signature
-    );
+    erc1155_lazy_extension_self.redeem_voucher_to(:to, :voucher, :signature);
   }
 
   // ERC165
@@ -60,8 +57,8 @@ mod ERC1155RoyaltiesLazy {
     let erc1155_self = ERC1155::unsafe_new_contract_state();
     let erc2981_self = ERC2981::unsafe_new_contract_state();
 
-    ERC1155::supports_interface(self: @erc1155_self, :interface_id) |
-    ERC2981::supports_interface(self: @erc2981_self, :interface_id)
+    erc1155_self.supports_interface(:interface_id) |
+    erc2981_self.supports_interface(:interface_id)
   }
 
   // ERC1155
@@ -70,14 +67,14 @@ mod ERC1155RoyaltiesLazy {
   fn balance_of(self: @ContractState, account: starknet::ContractAddress, id: u256) -> u256 {
     let erc1155_self = ERC1155::unsafe_new_contract_state();
 
-    ERC1155::IERC1155Impl::balance_of(self: @erc1155_self, :account, :id)
+    erc1155_self.balance_of(:account, :id)
   }
 
   #[external(v0)]
   fn mint(ref self: ContractState, to: starknet::ContractAddress, id: u256, amount: u256, data: Span<felt252>) {
     let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-    ERC1155::IERC1155Impl::mint(ref self: erc1155_self, :to, :id, :amount, :data);
+    erc1155_self.mint(:to, :id, :amount, :data);
   }
 
   #[external(v0)]
@@ -91,6 +88,6 @@ mod ERC1155RoyaltiesLazy {
   ) {
     let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-    ERC1155::IERC1155Impl::safe_transfer_from(ref self: erc1155_self, :from, :to, :id, :amount, :data)
+    erc1155_self.safe_transfer_from(:from, :to, :id, :amount, :data)
   }
 }
