@@ -129,6 +129,7 @@ mod Marketplace {
   // Marketplace impl
   //
 
+  #[external(v0)]
   impl MarketplaceImpl of marketplace::interface::IMarketplace<ContractState> {
     fn fulfill_order(
       ref self: ContractState,
