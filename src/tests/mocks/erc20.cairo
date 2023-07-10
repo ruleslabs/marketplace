@@ -10,6 +10,18 @@ trait IERC20<TContractState> {
   ) -> bool;
 }
 
+#[starknet::interface]
+trait MockERC20ABI<TContractState> {
+  fn balance_of(self: @TContractState, account: starknet::ContractAddress) -> u256;
+
+  fn transfer_from(
+    ref self: TContractState,
+    sender: starknet::ContractAddress,
+    recipient: starknet::ContractAddress,
+    amount: u256
+  ) -> bool;
+}
+
 #[starknet::contract]
 mod ERC20 {
   use super::IERC20;

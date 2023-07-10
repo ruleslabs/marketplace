@@ -4,7 +4,10 @@ mod ERC1155Lazy {
 
   // locals
   use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, ILazy, Voucher };
-  use super::super::erc1155::{ ERC1155, IERC1155 };
+
+  use super::super::erc1155::{ ERC1155 };
+  use super::super::erc1155::ERC1155::{ IMockERC1155, ERC1155ABI };
+
   use rules_marketplace::introspection::erc165::{ IERC165 };
 
   //
@@ -54,9 +57,9 @@ mod ERC1155Lazy {
   }
 
   #[external(v0)]
-  fn mint(ref self: ContractState, to: starknet::ContractAddress, id: u256, amount: u256, data: Span<felt252>) {
+  fn mint(ref self: ContractState, to: starknet::ContractAddress, id: u256, amount: u256) {
     let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-    erc1155_self.mint(:to, :id, :amount, :data);
+    erc1155_self.mint(:to, :id, :amount);
   }
 }

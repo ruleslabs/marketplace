@@ -38,8 +38,8 @@ use super::constants::{
 };
 use super::utils;
 use super::mocks::signer::Signer;
-use super::mocks::erc20::{ ERC20, IERC20Dispatcher, IERC20DispatcherTrait };
-use super::mocks::erc1155::{ ERC1155, IERC1155Dispatcher, IERC1155DispatcherTrait };
+use super::mocks::erc20::{ ERC20, MockERC20ABIDispatcher, MockERC20ABIDispatcherTrait };
+use super::mocks::erc1155::{ ERC1155, MockERC1155ABIDispatcher, MockERC1155ABIDispatcherTrait };
 use super::mocks::erc1155_lazy::ERC1155Lazy;
 use super::mocks::erc1155_royalties_lazy::ERC1155RoyaltiesLazy;
 
@@ -86,7 +86,7 @@ fn deploy_offeree() -> AccountABIDispatcher {
   offeree_address
 }
 
-fn deploy_erc20(recipient: starknet::ContractAddress, initial_supply: u256) -> IERC20Dispatcher {
+fn deploy_erc20(recipient: starknet::ContractAddress, initial_supply: u256) -> MockERC20ABIDispatcher {
   let mut calldata = ArrayTrait::<felt252>::new();
 
   calldata.append(initial_supply.low.into());
@@ -94,38 +94,28 @@ fn deploy_erc20(recipient: starknet::ContractAddress, initial_supply: u256) -> I
   calldata.append(recipient.into());
 
   let address = utils::deploy(ERC20::TEST_CLASS_HASH, calldata);
-  IERC20Dispatcher { contract_address: address }
+  MockERC20ABIDispatcher { contract_address: address }
 }
 
-fn deploy_erc1155(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
+fn deploy_erc1155(recipient: starknet::ContractAddress) -> MockERC1155ABIDispatcher {
   let address = utils::deploy(ERC1155::TEST_CLASS_HASH, calldata: ArrayTrait::<felt252>::new());
-  let erc1155 = IERC1155Dispatcher { contract_address: address };
+  let erc1155 = MockERC1155ABIDispatcher { contract_address: address };
 
-  erc1155.mint(
-    to: recipient,
-    id: ERC1155_IDENTIFIER(),
-    amount: ERC1155_AMOUNT(),
-    data: ArrayTrait::<felt252>::new().span()
-  );
+  erc1155.mint(to: recipient, id: ERC1155_IDENTIFIER(), amount: ERC1155_AMOUNT());
 
   erc1155
 }
 
-fn deploy_erc1155_lazy(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
+fn deploy_erc1155_lazy(recipient: starknet::ContractAddress) -> MockERC1155ABIDispatcher {
   let address = utils::deploy(ERC1155Lazy::TEST_CLASS_HASH, calldata: ArrayTrait::<felt252>::new());
-  let erc1155_lazy = IERC1155Dispatcher { contract_address: address };
+  let erc1155_lazy = MockERC1155ABIDispatcher { contract_address: address };
 
-  erc1155_lazy.mint(
-    to: recipient,
-    id: ERC1155_IDENTIFIER(),
-    amount: ERC1155_AMOUNT(),
-    data: ArrayTrait::<felt252>::new().span()
-  );
+  erc1155_lazy.mint(to: recipient, id: ERC1155_IDENTIFIER(), amount: ERC1155_AMOUNT());
 
   erc1155_lazy
 }
 
-fn deploy_erc1155_royalties_lazy(recipient: starknet::ContractAddress) -> IERC1155Dispatcher {
+fn deploy_erc1155_royalties_lazy(recipient: starknet::ContractAddress) -> MockERC1155ABIDispatcher {
   let mut calldata = ArrayTrait::<felt252>::new();
 
   let royalties_receiver = ROYALTIES_RECEIVER();
@@ -136,14 +126,9 @@ fn deploy_erc1155_royalties_lazy(recipient: starknet::ContractAddress) -> IERC11
   calldata.append(royalties_amount.high.into());
 
   let address = utils::deploy(ERC1155RoyaltiesLazy::TEST_CLASS_HASH, :calldata);
-  let erc1155_royalties = IERC1155Dispatcher { contract_address: address };
+  let erc1155_royalties = MockERC1155ABIDispatcher { contract_address: address };
 
-  erc1155_royalties.mint(
-    to: recipient,
-    id: ERC1155_IDENTIFIER(),
-    amount: ERC1155_AMOUNT(),
-    data: ArrayTrait::<felt252>::new().span()
-  );
+  erc1155_royalties.mint(to: recipient, id: ERC1155_IDENTIFIER(), amount: ERC1155_AMOUNT());
 
   erc1155_royalties
 }
@@ -913,7 +898,7 @@ fn assert_item_balance_with_royalties(
     Item::Native(()) => { panic_with_felt252('Unsupported item type'); },
 
     Item::ERC20(erc20_item) => {
-      let erc20 = IERC20Dispatcher { contract_address: erc20_item.token };
+      let erc20 = MockERC20ABIDispatcher { contract_address: erc20_item.token };
 
       assert(erc20.balance_of(owner) == erc20_item.amount - royalties_amount, error);
       assert(erc20.balance_of(other) == other_balance, error);
@@ -924,7 +909,7 @@ fn assert_item_balance_with_royalties(
     Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
 
     Item::ERC1155(erc1155_item) => {
-      let erc1155 = IERC1155Dispatcher { contract_address: erc1155_item.token };
+      let erc1155 = MockERC1155ABIDispatcher { contract_address: erc1155_item.token };
 
       assert(erc1155.balance_of(owner, erc1155_item.identifier) == erc1155_item.amount, error);
       assert(erc1155.balance_of(other, erc1155_item.identifier) == other_balance, error);

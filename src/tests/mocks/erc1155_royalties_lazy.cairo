@@ -4,10 +4,14 @@ mod ERC1155RoyaltiesLazy {
 
   // locals
   use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, ILazy, Voucher };
-  use super::super::erc1155::{ ERC1155, IERC1155 };
+
+  use super::super::erc1155::ERC1155;
+  use super::super::erc1155::ERC1155::{ ERC1155ABI, IMockERC1155 };
+
   use super::super::erc2981::{ ERC2981, IERC2981 };
   use super::super::erc2981::ERC2981::{ HelperTrait as ERC2981HelperTrait };
-  use rules_marketplace::introspection::erc165::{ IERC165 };
+
+  use rules_marketplace::introspection::erc165::IERC165;
 
   //
   // Storage
@@ -71,10 +75,10 @@ mod ERC1155RoyaltiesLazy {
   }
 
   #[external(v0)]
-  fn mint(ref self: ContractState, to: starknet::ContractAddress, id: u256, amount: u256, data: Span<felt252>) {
+  fn mint(ref self: ContractState, to: starknet::ContractAddress, id: u256, amount: u256) {
     let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-    erc1155_self.mint(:to, :id, :amount, :data);
+    erc1155_self.mint(:to, :id, :amount);
   }
 
   #[external(v0)]

@@ -1,13 +1,10 @@
 use array::SpanSerde;
 
-const IERC1155_RECEIVER_ID: u32 = 0x4e2312e0_u32;
-const ON_ERC1155_RECEIVED_SELECTOR: u32 = 0xf23a6e61_u32;
-
 #[starknet::interface]
-trait IERC1155<TContractState> {
+trait MockERC1155ABI<TContractState> {
   fn balance_of(self: @TContractState, account: starknet::ContractAddress, id: u256) -> u256;
 
-  fn mint(ref self: TContractState, to: starknet::ContractAddress, id: u256, amount: u256, data: Span<felt252>);
+  fn mint(ref self: TContractState, to: starknet::ContractAddress, id: u256, amount: u256);
 
   fn safe_transfer_from(
     ref self: TContractState,
@@ -19,42 +16,21 @@ trait IERC1155<TContractState> {
   );
 }
 
-#[starknet::interface]
-trait IERC1155Receiver<TContractState> {
-  fn on_erc1155_received(
-    ref self: TContractState,
-    operator: starknet::ContractAddress,
-    from: starknet::ContractAddress,
-    id: u256,
-    value: u256,
-    data: Span<felt252>
-  ) -> u32;
-}
-
 #[starknet::contract]
 mod ERC1155 {
-  use array::{ Span, ArrayTrait, SpanTrait, ArrayDrop, SpanSerde };
-  use option::OptionTrait;
-  use traits::{ Into, TryInto };
-  use zeroable::Zeroable;
-  use starknet::contract_address::ContractAddressZeroable;
-  use rules_account::account;
-
-  // locals
-  use rules_marketplace::introspection::erc165::{ IERC165 };
-
-  // Dispatchers
-  use rules_marketplace::introspection::erc165::{ IERC165Dispatcher, IERC165DispatcherTrait };
-  use super::{ IERC1155ReceiverDispatcher, IERC1155ReceiverDispatcherTrait };
+  use array::{ SpanSerde, ArrayTrait };
+  use rules_erc1155::erc1155::erc1155;
+  use rules_erc1155::erc1155::erc1155::{ ERC1155, ERC1155ABI };
+  use rules_erc1155::erc1155::erc1155::ERC1155::{ HelperTrait as ERC1155HelperTrait };
+  use rules_erc1155::erc1155::interface::IERC1155;
+  use rules_erc1155::introspection::erc165::{ IERC165 as rules_erc1155_IERC165 };
 
   //
   // Storage
   //
 
   #[storage]
-  struct Storage {
-    _balances: LegacyMap<(u256, starknet::ContractAddress), u256>,
-  }
+  struct Storage { }
 
   //
   // Constructor
@@ -64,18 +40,52 @@ mod ERC1155 {
   fn constructor(ref self: ContractState) { }
 
   //
-  // Interface impl
+  // IERC1155 impl
   //
 
   #[external(v0)]
-  impl IERC1155Impl of super::IERC1155<ContractState> {
-    fn balance_of(self: @ContractState, account: starknet::ContractAddress, id: u256) -> u256 {
-      self._balances.read((id, account))
+  impl IERC1155Impl of erc1155::ERC1155ABI<ContractState> {
+    fn uri(self: @ContractState, token_id: u256) -> Span<felt252> {
+      let erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      erc1155_self.uri(:token_id)
     }
 
-    fn mint(ref self: ContractState, to: starknet::ContractAddress, id: u256, amount: u256, data: Span<felt252>) {
-      assert(to.is_non_zero(), 'ERC1155: mint to 0 addr');
-      self._update(from: Zeroable::zero(), :to, :id, :amount, :data);
+    fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+      let erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      erc1155_self.supports_interface(:interface_id)
+    }
+
+    fn balance_of(self: @ContractState, account: starknet::ContractAddress, id: u256) -> u256 {
+      let erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      erc1155_self.balance_of(:account, :id)
+    }
+
+    fn balance_of_batch(
+      self: @ContractState,
+      accounts: Span<starknet::ContractAddress>,
+      ids: Span<u256>
+    ) -> Array<u256> {
+      let erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      erc1155_self.balance_of_batch(:accounts, :ids)
+    }
+
+    fn is_approved_for_all(self: @ContractState,
+      account: starknet::ContractAddress,
+      operator: starknet::ContractAddress
+    ) -> bool {
+      let erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      erc1155_self.is_approved_for_all(:account, :operator)
+    }
+
+    fn set_approval_for_all(ref self: ContractState, operator: starknet::ContractAddress, approved: bool) {
+      let mut erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      erc1155_self.set_approval_for_all(:operator, :approved);
     }
 
     fn safe_transfer_from(
@@ -86,100 +96,37 @@ mod ERC1155 {
       amount: u256,
       data: Span<felt252>
     ) {
-      let caller = starknet::get_caller_address();
+      let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-      self._safe_transfer_from(:from, :to, :id, :amount, :data);
+      // skip owner/approve check by using the internal `_safe_transfer_from`
+      erc1155_self._safe_transfer_from(:from, :to, :id, :amount, :data);
+    }
+
+    fn safe_batch_transfer_from(
+      ref self: ContractState,
+      from: starknet::ContractAddress,
+      to: starknet::ContractAddress,
+      ids: Span<u256>,
+      amounts: Span<u256>,
+      data: Span<felt252>
+    ) {
+      let mut erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      erc1155_self.safe_batch_transfer_from(:from, :to, :ids, :amounts, :data);
     }
   }
 
   //
-  // ERC165 impl
-  //
-
-  #[external(v0)]
-  impl IERC165Impl of IERC165<ContractState> {
-    fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
-      false
-    }
-  }
-
-
-  //
-  // Helpers
+  // impls
   //
 
   #[generate_trait]
-  impl HelperImpl of HelperTrait {
+  #[external(v0)]
+  impl IMockERC1155Impl of IMockERC1155 {
+    fn mint(ref self: ContractState, to: starknet::ContractAddress, id: u256, amount: u256) {
+      let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-    // Balances update
-
-    fn _update(
-      ref self: ContractState,
-      from: starknet::ContractAddress,
-      to: starknet::ContractAddress,
-      mut id: u256,
-      amount: u256,
-      data: Span<felt252>
-    ) {
-      let operator = starknet::get_caller_address();
-
-      // Decrease sender balance
-      if (from.is_non_zero()) {
-        let from_balance = self._balances.read((id, from));
-        assert(from_balance >= amount, 'ERC1155: insufficient balance');
-
-        self._balances.write((id, from), from_balance - amount);
-      }
-
-      // Increase recipient balance
-      if (to.is_non_zero()) {
-        let to_balance = self._balances.read((id, to));
-        self._balances.write((id, to), to_balance + amount);
-      }
-
-      // Safe transfer check
-      if (to.is_non_zero()) {
-        self._do_safe_transfer_acceptance_check(:operator, :from, :to, :id, :amount, :data);
-      }
-    }
-
-    fn _safe_transfer_from(
-      ref self: ContractState,
-      from: starknet::ContractAddress,
-      to: starknet::ContractAddress,
-      id: u256,
-      amount: u256,
-      data: Span<felt252>
-    ) {
-      assert(to.is_non_zero(), 'ERC1155: transfer to 0 addr');
-      assert(from.is_non_zero(), 'ERC1155: transfer from 0 addr');
-
-      self._update(:from, :to, :id, :amount, :data);
-    }
-
-    // Safe transfer check
-
-    fn _do_safe_transfer_acceptance_check(
-      ref self: ContractState,
-      operator: starknet::ContractAddress,
-      from: starknet::ContractAddress,
-      to: starknet::ContractAddress,
-      id: u256,
-      amount: u256,
-      data: Span<felt252>
-    ) {
-      let ERC165 = IERC165Dispatcher { contract_address: to };
-
-      if (ERC165.supports_interface(super::IERC1155_RECEIVER_ID)) {
-        // TODO: add casing fallback mechanism
-
-        let ERC1155Receiver = IERC1155ReceiverDispatcher { contract_address: to };
-
-        let response = ERC1155Receiver.on_erc1155_received(:operator, :from, :id, value: amount, :data);
-        assert(response == super::ON_ERC1155_RECEIVED_SELECTOR, 'ERC1155: safe transfer failed');
-      } else {
-        assert(ERC165.supports_interface(account::interface::IACCOUNT_ID), 'ERC1155: safe transfer failed');
-      }
+      erc1155_self._mint(:to, :id, :amount, data: ArrayTrait::new().span());
     }
   }
 }
