@@ -5,9 +5,10 @@ trait IERC2981<TContractState> {
 
 #[starknet::contract]
 mod ERC2981 {
+  use rules_utils::introspection::erc165::{ IERC165 };
+
   // locals
   use rules_marketplace::royalties::erc2981::IERC2981_ID;
-  use rules_marketplace::introspection::erc165::{ IERC165 };
 
   //
   // Storage

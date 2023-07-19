@@ -1,14 +1,13 @@
 #[starknet::contract]
 mod ERC1155Lazy {
   use array::{ ArrayTrait, SpanTrait, SpanSerde };
+  use rules_utils::introspection::erc165::{ IERC165 };
 
   // locals
   use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, ILazy, Voucher };
 
   use super::super::erc1155::{ ERC1155 };
   use super::super::erc1155::ERC1155::{ IMockERC1155, ERC1155ABI };
-
-  use rules_marketplace::introspection::erc165::{ IERC165 };
 
   //
   // Storage

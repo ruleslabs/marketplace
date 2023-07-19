@@ -30,6 +30,9 @@ mod Marketplace {
   use zeroable::Zeroable;
   use integer::U256Zeroable;
 
+  // dispatchers
+  use rules_utils::introspection::erc165::{ IERC165Dispatcher, IERC165DispatcherTrait };
+
   // locals
   use rules_marketplace::marketplace;
   use rules_marketplace::marketplace::interface::{ IMarketplace, IMarketplaceMessages, Order, Voucher, DeploymentData };
@@ -46,7 +49,6 @@ mod Marketplace {
   use rules_marketplace::marketplace::order::Item;
 
   // dispatchers
-  use rules_marketplace::introspection::erc165::{ IERC165Dispatcher, IERC165DispatcherTrait };
   use rules_marketplace::royalties::erc2981::{ IERC2981_ID, IERC2981Dispatcher, IERC2981DispatcherTrait };
   use rules_marketplace::token::erc20::{ IERC20Dispatcher, IERC20DispatcherTrait };
   use rules_marketplace::token::erc1155::{ IERC1155Dispatcher, IERC1155DispatcherTrait };

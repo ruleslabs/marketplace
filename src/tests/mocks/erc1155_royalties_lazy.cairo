@@ -1,6 +1,7 @@
 #[starknet::contract]
 mod ERC1155RoyaltiesLazy {
   use array::{ ArrayTrait, SpanTrait, SpanSerde };
+  use rules_utils::introspection::erc165::IERC165;
 
   // locals
   use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, ILazy, Voucher };
@@ -10,8 +11,6 @@ mod ERC1155RoyaltiesLazy {
 
   use super::super::erc2981::{ ERC2981, IERC2981 };
   use super::super::erc2981::ERC2981::{ HelperTrait as ERC2981HelperTrait };
-
-  use rules_marketplace::introspection::erc165::IERC165;
 
   //
   // Storage

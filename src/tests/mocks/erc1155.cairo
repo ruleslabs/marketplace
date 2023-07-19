@@ -23,7 +23,7 @@ mod ERC1155 {
   use rules_erc1155::erc1155::erc1155::{ ERC1155, ERC1155ABI };
   use rules_erc1155::erc1155::erc1155::ERC1155::{ HelperTrait as ERC1155HelperTrait };
   use rules_erc1155::erc1155::interface::IERC1155;
-  use rules_erc1155::introspection::erc165::{ IERC165 as rules_erc1155_IERC165 };
+  use rules_utils::introspection::erc165::{ IERC165 as rules_erc1155_IERC165 };
 
   //
   // Storage
