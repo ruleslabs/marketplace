@@ -72,12 +72,12 @@ mod ERC20 {
   }
 
   //
-  // Helpers
+  // Internals
   //
 
 
   #[generate_trait]
-  impl HelperImpl of HelperTrait {
+  impl InternalImpl of InternalTrait {
     fn _mint(ref self: ContractState, recipient: starknet::ContractAddress, amount: u256) {
       assert(!recipient.is_zero(), 'ERC20: mint to 0');
 

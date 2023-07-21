@@ -5,10 +5,8 @@ trait IERC2981<TContractState> {
 
 #[starknet::contract]
 mod ERC2981 {
-  use rules_utils::introspection::erc165::{ IERC165 };
-
-  // locals
-  use rules_marketplace::royalties::erc2981::IERC2981_ID;
+  use rules_utils::introspection::interface::ISRC5;
+  use rules_utils::royalties::interface::IERC2981_ID;
 
   //
   // Storage
@@ -47,18 +45,18 @@ mod ERC2981 {
   //
 
   #[external(v0)]
-  impl IERC165Impl of IERC165<ContractState> {
-    fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+  impl ISRC5Impl of ISRC5<ContractState> {
+    fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
       interface_id == IERC2981_ID
     }
   }
 
   //
-  // Helper impl
+  // Internal impl
   //
 
   #[generate_trait]
-  impl HelperImpl of HelperTrait {
+  impl InternalImpl of InternalTrait {
     fn initializer(ref self: ContractState, receiver_: starknet::ContractAddress, amount_: u256) {
       self._receiver.write(receiver_);
       self._amount.write(amount_);

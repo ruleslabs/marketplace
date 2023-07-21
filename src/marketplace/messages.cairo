@@ -1,4 +1,4 @@
-use rules_account::account::account::Account::HelperTrait;
+use rules_account::account::account::Account::InternalTrait;
 use array::SpanSerde;
 use messages::typed_data::typed_data::Domain;
 
@@ -36,17 +36,17 @@ mod MarketplaceMessages {
   use zeroable::Zeroable;
   use integer::U64Zeroable;
   use messages::messages::Messages;
-  use messages::messages::Messages::{ HelperTrait as MessagesHelperTrait };
+  use messages::messages::Messages::InternalTrait as MessagesInternalTrait;
   use messages::typed_data::TypedDataTrait;
   use rules_account::account::Account;
-  use rules_account::account::Account::{ HelperTrait as AccountHelperTrait };
+  use rules_account::account::Account::InternalTrait as AccountInternalTrait;
 
   // locals
   use rules_marketplace::marketplace;
   use super::{ DOMAIN, Order, DeploymentData };
   use super::super::deployment_data::DeploymentDataTrait;
-  use rules_marketplace::utils::zeroable::{ DeploymentDataZeroable };
-  use super::super::interface::{ IMarketplaceMessages };
+  use rules_marketplace::utils::zeroable::DeploymentDataZeroable;
+  use super::super::interface::IMarketplaceMessages;
 
   // dispatchers
   use rules_account::account::{ AccountABIDispatcher, AccountABIDispatcherTrait };
@@ -109,7 +109,7 @@ mod MarketplaceMessages {
         assert(computed_signer == from, 'Invalid deployment data');
 
         assert(
-          account_self._is_valid_signature(message: hash, :signature, public_key: deployment_data.public_key),
+          account_self._is_valid_signature(:hash, :signature, public_key: deployment_data.public_key),
           'Invalid order signature'
         );
       }

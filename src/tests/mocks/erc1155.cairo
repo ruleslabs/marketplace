@@ -21,9 +21,9 @@ mod ERC1155 {
   use array::{ SpanSerde, ArrayTrait };
   use rules_erc1155::erc1155::erc1155;
   use rules_erc1155::erc1155::erc1155::{ ERC1155, ERC1155ABI };
-  use rules_erc1155::erc1155::erc1155::ERC1155::{ HelperTrait as ERC1155HelperTrait };
+  use rules_erc1155::erc1155::erc1155::ERC1155::{ InternalTrait as ERC1155InternalTrait };
   use rules_erc1155::erc1155::interface::IERC1155;
-  use rules_utils::introspection::erc165::{ IERC165 as rules_erc1155_IERC165 };
+  use rules_utils::introspection::interface::ISRC5;
 
   //
   // Storage
@@ -51,7 +51,7 @@ mod ERC1155 {
       erc1155_self.uri(:token_id)
     }
 
-    fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+    fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
       let erc1155_self = ERC1155::unsafe_new_contract_state();
 
       erc1155_self.supports_interface(:interface_id)

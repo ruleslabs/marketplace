@@ -1,7 +1,6 @@
 #[starknet::contract]
 mod ERC1155Lazy {
   use array::{ ArrayTrait, SpanTrait, SpanSerde };
-  use rules_utils::introspection::erc165::{ IERC165 };
 
   // locals
   use super::super::erc1155_lazy_extension::{ ERC1155LazyExtension, ILazy, Voucher };
@@ -40,7 +39,7 @@ mod ERC1155Lazy {
   // ERC165
 
   #[external(v0)]
-  fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
+  fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
     let erc1155_self = ERC1155::unsafe_new_contract_state();
 
     erc1155_self.supports_interface(:interface_id)

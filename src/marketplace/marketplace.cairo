@@ -29,9 +29,11 @@ mod Marketplace {
   use array::{ ArrayTrait, SpanTrait };
   use zeroable::Zeroable;
   use integer::U256Zeroable;
+  use rules_utils::royalties::interface::IERC2981_ID;
 
   // dispatchers
-  use rules_utils::introspection::erc165::{ IERC165Dispatcher, IERC165DispatcherTrait };
+  use rules_utils::introspection::dual_src5::{ DualCaseSRC5, DualCaseSRC5Trait };
+  use rules_utils::royalties::interface::{ IERC2981Dispatcher, IERC2981DispatcherTrait };
 
   // locals
   use rules_marketplace::marketplace;
@@ -43,13 +45,12 @@ mod Marketplace {
   use rules_marketplace::access::ownable::{ Ownable, IOwnable };
   use rules_marketplace::access::ownable::Ownable::{
     ModifierTrait as OwnableModifierTrait,
-    HelperTrait as OwnableHelperTrait,
+    InternalTrait as OwnableInternalTrait,
   };
 
   use rules_marketplace::marketplace::order::Item;
 
   // dispatchers
-  use rules_marketplace::royalties::erc2981::{ IERC2981_ID, IERC2981Dispatcher, IERC2981DispatcherTrait };
   use rules_marketplace::token::erc20::{ IERC20Dispatcher, IERC20DispatcherTrait };
   use rules_marketplace::token::erc1155::{ IERC1155Dispatcher, IERC1155DispatcherTrait };
   use rules_marketplace::token::lazy_minter::{ ILazyMinterDispatcher, ILazyMinterDispatcherTrait };
@@ -309,7 +310,7 @@ mod Marketplace {
   //
 
   #[generate_trait]
-  impl HelperImpl of HelperTrait {
+  impl InternalImpl of InternalTrait {
 
     // Init
 
@@ -358,10 +359,10 @@ mod Marketplace {
         Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
 
         Item::ERC1155(erc_1155_item) => {
-          let ERC165 = IERC165Dispatcher { contract_address: erc_1155_item.token };
+          let SRC5 = DualCaseSRC5 { contract_address: erc_1155_item.token };
 
           // check if token support ERC2981 royalties standard
-          if (ERC165.supports_interface(IERC2981_ID)) {
+          if (SRC5.supports_interface(interface_id: IERC2981_ID)) {
             let ERC2981 = IERC2981Dispatcher { contract_address: erc_1155_item.token };
 
             // return royalty infos from token

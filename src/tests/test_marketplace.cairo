@@ -8,7 +8,7 @@ use rules_marketplace::marketplace::Marketplace;
 use rules_marketplace::marketplace::Marketplace::{
   ContractState as MarketplaceContractState,
   IMarketplace,
-  HelperTrait,
+  InternalTrait,
   UpgradeTrait,
 };
 use rules_marketplace::marketplace::order::{ Item };
@@ -762,7 +762,7 @@ fn test_fulfill_order_with_voucher_erc1155_erc20_with_royalties() {
 // TODO
 
 //
-// Helpers
+// Internals
 //
 
 fn assert_state_before_order(order: Order) {

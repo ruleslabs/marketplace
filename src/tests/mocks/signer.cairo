@@ -3,9 +3,9 @@ mod Signer {
   use array::ArrayTrait;
 
   // locals
-  use rules_account::account;
   use rules_account::account::Account;
-  use rules_account::account::Account::{ HelperTrait as AccountHelperTrait };
+  use rules_account::account::Account::{ InternalTrait as AccountInternalTrait };
+  use rules_account::account::interface::ISRC6_ID;
 
   //
   // Storage
@@ -30,8 +30,8 @@ mod Signer {
   //
 
   #[external(v0)]
-  fn supports_interface(self: @ContractState, interface_id: u32) -> bool {
-    if (interface_id == rules_account::account::interface::IACCOUNT_ID) {
+  fn supports_interface(self: @ContractState, interface_id: felt252) -> bool {
+    if (interface_id == ISRC6_ID) {
       true
     } else {
       false
@@ -39,15 +39,15 @@ mod Signer {
   }
 
   #[external(v0)]
-  fn is_valid_signature(self: @ContractState, message: felt252, signature: Array<felt252>) -> u32 {
+  fn is_valid_signature(self: @ContractState, message: felt252, signature: Array<felt252>) -> felt252 {
     let account_self = Account::unsafe_new_contract_state();
 
     if (
-      account_self._is_valid_signature(:message, signature: signature.span(), public_key: self._public_key.read())
+      account_self._is_valid_signature(hash: message, signature: signature.span(), public_key: self._public_key.read())
     ) {
-      account::interface::ERC1271_VALIDATED
+      starknet::VALIDATED
     } else {
-      0_u32
+      0
     }
   }
 }
