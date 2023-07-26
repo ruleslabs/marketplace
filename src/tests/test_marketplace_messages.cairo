@@ -42,8 +42,7 @@ fn setup() -> MarketplaceMessagesContractState {
 }
 
 fn setup_signer(public_key: felt252) -> AccountABIDispatcher {
-  let mut calldata = ArrayTrait::new();
-  calldata.append(public_key);
+  let calldata = array![public_key];
 
   let signer_address = utils::deploy(Signer::TEST_CLASS_HASH, calldata);
 

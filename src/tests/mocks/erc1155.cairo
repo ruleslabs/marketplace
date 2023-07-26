@@ -19,10 +19,9 @@ trait MockERC1155ABI<TContractState> {
 #[starknet::contract]
 mod ERC1155 {
   use array::{ SpanSerde, ArrayTrait };
-  use rules_erc1155::erc1155::erc1155;
   use rules_erc1155::erc1155::erc1155::{ ERC1155, ERC1155ABI };
-  use rules_erc1155::erc1155::erc1155::ERC1155::{ InternalTrait as ERC1155InternalTrait };
-  use rules_erc1155::erc1155::interface::IERC1155;
+  use rules_erc1155::erc1155::erc1155::ERC1155::InternalTrait as ERC1155InternalTrait;
+  use rules_erc1155::erc1155::interface::{ IERC1155, IERC1155Metadata };
   use rules_utils::introspection::interface::ISRC5;
 
   //
@@ -44,7 +43,7 @@ mod ERC1155 {
   //
 
   #[external(v0)]
-  impl IERC1155Impl of erc1155::ERC1155ABI<ContractState> {
+  impl IERC1155Impl of ERC1155ABI<ContractState> {
     fn uri(self: @ContractState, token_id: u256) -> Span<felt252> {
       let erc1155_self = ERC1155::unsafe_new_contract_state();
 
@@ -67,7 +66,7 @@ mod ERC1155 {
       self: @ContractState,
       accounts: Span<starknet::ContractAddress>,
       ids: Span<u256>
-    ) -> Array<u256> {
+    ) -> Span<u256> {
       let erc1155_self = ERC1155::unsafe_new_contract_state();
 
       erc1155_self.balance_of_batch(:accounts, :ids)
@@ -126,7 +125,7 @@ mod ERC1155 {
     fn mint(ref self: ContractState, to: starknet::ContractAddress, id: u256, amount: u256) {
       let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-      erc1155_self._mint(:to, :id, :amount, data: ArrayTrait::new().span());
+      erc1155_self._mint(:to, :id, :amount, data: array![].span());
     }
   }
 }

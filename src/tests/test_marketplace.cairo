@@ -63,8 +63,7 @@ fn setup() -> MarketplaceContractState {
 }
 
 fn deploy_signer(public_key: felt252) -> AccountABIDispatcher {
-  let mut calldata = ArrayTrait::new();
-  calldata.append(public_key);
+  let calldata = array![public_key];
 
   let signer_address = utils::deploy(Signer::TEST_CLASS_HASH, calldata);
   AccountABIDispatcher { contract_address: signer_address }
@@ -87,18 +86,14 @@ fn deploy_offeree() -> AccountABIDispatcher {
 }
 
 fn deploy_erc20(recipient: starknet::ContractAddress, initial_supply: u256) -> MockERC20ABIDispatcher {
-  let mut calldata = ArrayTrait::<felt252>::new();
-
-  calldata.append(initial_supply.low.into());
-  calldata.append(initial_supply.high.into());
-  calldata.append(recipient.into());
+  let calldata = array![initial_supply.low.into(), initial_supply.high.into(), recipient.into()];
 
   let address = utils::deploy(ERC20::TEST_CLASS_HASH, calldata);
   MockERC20ABIDispatcher { contract_address: address }
 }
 
 fn deploy_erc1155(recipient: starknet::ContractAddress) -> MockERC1155ABIDispatcher {
-  let address = utils::deploy(ERC1155::TEST_CLASS_HASH, calldata: ArrayTrait::<felt252>::new());
+  let address = utils::deploy(ERC1155::TEST_CLASS_HASH, calldata: array![]);
   let erc1155 = MockERC1155ABIDispatcher { contract_address: address };
 
   erc1155.mint(to: recipient, id: ERC1155_IDENTIFIER(), amount: ERC1155_AMOUNT());
@@ -107,7 +102,7 @@ fn deploy_erc1155(recipient: starknet::ContractAddress) -> MockERC1155ABIDispatc
 }
 
 fn deploy_erc1155_lazy(recipient: starknet::ContractAddress) -> MockERC1155ABIDispatcher {
-  let address = utils::deploy(ERC1155Lazy::TEST_CLASS_HASH, calldata: ArrayTrait::<felt252>::new());
+  let address = utils::deploy(ERC1155Lazy::TEST_CLASS_HASH, calldata: array![]);
   let erc1155_lazy = MockERC1155ABIDispatcher { contract_address: address };
 
   erc1155_lazy.mint(to: recipient, id: ERC1155_IDENTIFIER(), amount: ERC1155_AMOUNT());
@@ -116,14 +111,10 @@ fn deploy_erc1155_lazy(recipient: starknet::ContractAddress) -> MockERC1155ABIDi
 }
 
 fn deploy_erc1155_royalties_lazy(recipient: starknet::ContractAddress) -> MockERC1155ABIDispatcher {
-  let mut calldata = ArrayTrait::<felt252>::new();
-
   let royalties_receiver = ROYALTIES_RECEIVER();
   let royalties_amount = ROYALTIES_AMOUNT();
 
-  calldata.append(royalties_receiver.into());
-  calldata.append(royalties_amount.low.into());
-  calldata.append(royalties_amount.high.into());
+  let calldata = array![royalties_receiver.into(), royalties_amount.low.into(), royalties_amount.high.into()];
 
   let address = utils::deploy(ERC1155RoyaltiesLazy::TEST_CLASS_HASH, :calldata);
   let erc1155_royalties = MockERC1155ABIDispatcher { contract_address: address };

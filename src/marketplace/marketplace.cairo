@@ -414,7 +414,7 @@ mod Marketplace {
             :to,
             id: erc_1155_item.identifier,
             amount: erc_1155_item.amount,
-            data: ArrayTrait::<felt252>::new().span()
+            data: array![].span()
           );
         },
       }
