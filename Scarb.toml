@@ -12,7 +12,7 @@ rules_account = { git = "https://github.com/ruleslabs/starknet-rules-account.git
 rules_tokens = { git = "https://github.com/ruleslabs/core.git" }
 rules_utils = { git = "https://github.com/ruleslabs/starknet-utils.git" }
 messages = { git = "https://github.com/ruleslabs/starknet-messages.git" }
-starknet = "2.1.0-rc2"
+starknet = ">=2.1.0-rc0"
 
 [[target.starknet-contract]]
 # Enable Sierra codegen.
