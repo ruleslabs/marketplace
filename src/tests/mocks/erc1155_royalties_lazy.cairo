@@ -81,16 +81,15 @@ mod ERC1155RoyaltiesLazy {
   }
 
   #[external(v0)]
-  fn safe_transfer_from(
+  fn transfer_from(
     ref self: ContractState,
     from: starknet::ContractAddress,
     to: starknet::ContractAddress,
     id: u256,
     amount: u256,
-    data: Span<felt252>
   ) {
     let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-    erc1155_self.safe_transfer_from(:from, :to, :id, :amount, :data)
+    erc1155_self.transfer_from(:from, :to, :id, :amount)
   }
 }

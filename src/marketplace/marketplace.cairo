@@ -34,6 +34,7 @@ mod Marketplace {
   // dispatchers
   use rules_utils::introspection::dual_src5::{ DualCaseSRC5, DualCaseSRC5Trait };
   use rules_utils::royalties::interface::{ IERC2981Dispatcher, IERC2981DispatcherTrait };
+  use rules_erc1155::erc1155::dual_erc1155::{ DualCaseERC1155, DualCaseERC1155Trait, };
 
   // locals
   use rules_marketplace::marketplace;
@@ -52,7 +53,6 @@ mod Marketplace {
 
   // dispatchers
   use rules_marketplace::token::erc20::{ IERC20Dispatcher, IERC20DispatcherTrait };
-  use rules_marketplace::token::erc1155::{ IERC1155Dispatcher, IERC1155DispatcherTrait };
   use rules_marketplace::token::lazy_minter::{ ILazyMinterDispatcher, ILazyMinterDispatcherTrait };
 
   //
@@ -407,14 +407,13 @@ mod Marketplace {
         Item::ERC721(()) => { panic_with_felt252('Unsupported item type'); },
 
         Item::ERC1155(erc_1155_item) => {
-          let ERC1155 = IERC1155Dispatcher { contract_address: erc_1155_item.token };
+          let ERC1155 = DualCaseERC1155 { contract_address: erc_1155_item.token };
 
-          ERC1155.safe_transfer_from(
+          ERC1155.transfer_from(
             :from,
             :to,
             id: erc_1155_item.identifier,
             amount: erc_1155_item.amount,
-            data: array![].span()
           );
         },
       }

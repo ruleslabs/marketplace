@@ -6,13 +6,12 @@ trait MockERC1155ABI<TContractState> {
 
   fn mint(ref self: TContractState, to: starknet::ContractAddress, id: u256, amount: u256);
 
-  fn safe_transfer_from(
+  fn transfer_from(
     ref self: TContractState,
     from: starknet::ContractAddress,
     to: starknet::ContractAddress,
     id: u256,
     amount: u256,
-    data: Span<felt252>
   );
 }
 
@@ -97,8 +96,7 @@ mod ERC1155 {
     ) {
       let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
-      // skip owner/approve check by using the internal `_safe_transfer_from`
-      erc1155_self._safe_transfer_from(:from, :to, :id, :amount, :data);
+      erc1155_self.safe_transfer_from(:from, :to, :id, :amount, :data);
     }
 
     fn safe_batch_transfer_from(
@@ -112,6 +110,31 @@ mod ERC1155 {
       let mut erc1155_self = ERC1155::unsafe_new_contract_state();
 
       erc1155_self.safe_batch_transfer_from(:from, :to, :ids, :amounts, :data);
+    }
+
+    fn transfer_from(
+      ref self: ContractState,
+      from: starknet::ContractAddress,
+      to: starknet::ContractAddress,
+      id: u256,
+      amount: u256,
+    ) {
+      let mut erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      // skip owner/approve check by using the internal `_transfer_from`
+      erc1155_self._transfer_from(:from, :to, :id, :amount);
+    }
+
+    fn batch_transfer_from(
+      ref self: ContractState,
+      from: starknet::ContractAddress,
+      to: starknet::ContractAddress,
+      ids: Span<u256>,
+      amounts: Span<u256>,
+    ) {
+      let mut erc1155_self = ERC1155::unsafe_new_contract_state();
+
+      erc1155_self.batch_transfer_from(:from, :to, :ids, :amounts);
     }
   }
 
