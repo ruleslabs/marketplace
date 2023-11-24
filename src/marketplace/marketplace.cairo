@@ -34,7 +34,7 @@ mod Marketplace {
   // dispatchers
   use rules_utils::introspection::dual_src5::{ DualCaseSRC5, DualCaseSRC5Trait };
   use rules_utils::royalties::interface::{ IERC2981Dispatcher, IERC2981DispatcherTrait };
-  use rules_erc1155::erc1155::dual_erc1155::{ DualCaseERC1155, DualCaseERC1155Trait, };
+  use erc1155::erc1155::dual_erc1155::{ DualCaseERC1155, DualCaseERC1155Trait, };
 
   // locals
   use rules_marketplace::marketplace;
